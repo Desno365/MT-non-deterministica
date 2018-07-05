@@ -3,10 +3,11 @@
 #include <string.h>
 #include <stdbool.h>
 
-//#define DEBUG_DATI
-//#define DEBUG_NUM_COPIE_NASTRO
-#define GRANDEZZA_ARRAY_STATI_INIZIALE 128
+//#define DEBUG_DATI // debug dati della macchina in ingresso (stati, transizioni, stati di accettazioni, numero massimo di mosse)
 
+// costanti
+#define GRANDEZZA_ARRAY_STATI_INIZIALE 128
+#define FATTORE_DI_ALLARGAMENTO_ARRAY 64
 
 // variabili per lettura file di input
 typedef enum {TR, ACC, MAX, RUN} InputCorrenteType;
@@ -67,15 +68,6 @@ bool raggiuntoFineFile = false;
 InformazioniTransizione* primoPosto;
 
 
-// variabili di debug
-#ifdef DEBUG_NUM_COPIE_NASTRO
-unsigned long copieDiNastro = 1;
-#endif
-
-
-//unsigned long copieFatte = 0;
-
-
 
 // ######## DICHIARAZIONE FUNZIONI ########
 void caricaDatiMT();
@@ -90,7 +82,6 @@ bool controllaSeStatoDiAccettazione(int stato);
 void debugTransizioni();
 void debugStatiAcc();
 void debugMaxMosse();
-void debugNastro(NastroConArray* nastro);
 
 NastroConArray* duplicaNastro(NastroConArray* nastro);
 void allargaNastroArray(NastroConArray* nastro);
@@ -201,13 +192,13 @@ void aggiungiTransizione(int statoIniziale, char letto, char scritto, char movim
 		#ifdef DEBUG_DATI
 		printf("Duplicata grandezza array stati macchina.\n");
 		#endif
-		ArraySpecificheTransizione** temp = (ArraySpecificheTransizione**) realloc(statiInMT, (numeroDiStati + GRANDEZZA_ARRAY_STATI_INIZIALE) * sizeof(ArraySpecificheTransizione*));
+		ArraySpecificheTransizione** temp = (ArraySpecificheTransizione**) realloc(statiInMT, (numeroDiStati + FATTORE_DI_ALLARGAMENTO_ARRAY) * sizeof(ArraySpecificheTransizione*));
 		if(temp != NULL)
 		{
 			statiInMT = temp;
-			for(int i = numeroDiStati; i < (numeroDiStati + GRANDEZZA_ARRAY_STATI_INIZIALE); i++)
+			for(int i = numeroDiStati; i < (numeroDiStati + FATTORE_DI_ALLARGAMENTO_ARRAY); i++)
 				statiInMT[i] = NULL;
-			numeroDiStati = (numeroDiStati + GRANDEZZA_ARRAY_STATI_INIZIALE);
+			numeroDiStati = (numeroDiStati + FATTORE_DI_ALLARGAMENTO_ARRAY);
 		}
 	}
 
@@ -340,13 +331,13 @@ void aggiungiStatoDiAccettazione(int statoDiAccettazione)
 		printf("Duplicata grandezza array stati di accettazione.\n");
 		#endif
 
-		bool* temp = (bool*) realloc(arrayStatiAcc, (numeroDiStatiAccMax + GRANDEZZA_ARRAY_STATI_INIZIALE) * sizeof(bool));
+		bool* temp = (bool*) realloc(arrayStatiAcc, (numeroDiStatiAccMax + FATTORE_DI_ALLARGAMENTO_ARRAY) * sizeof(bool));
 		if(temp != NULL)
 		{
 			arrayStatiAcc = temp;
-			for(int i = numeroDiStatiAccMax; i < (numeroDiStatiAccMax + GRANDEZZA_ARRAY_STATI_INIZIALE); i++)
+			for(int i = numeroDiStatiAccMax; i < (numeroDiStatiAccMax + FATTORE_DI_ALLARGAMENTO_ARRAY); i++)
 				arrayStatiAcc[i] = false;
-			numeroDiStatiAccMax = (numeroDiStatiAccMax + GRANDEZZA_ARRAY_STATI_INIZIALE);
+			numeroDiStatiAccMax = (numeroDiStatiAccMax + FATTORE_DI_ALLARGAMENTO_ARRAY);
 		}
 	}
 	arrayStatiAcc[statoDiAccettazione] = true;
@@ -412,17 +403,6 @@ void debugMaxMosse()
 {
 
 	printf("Max mosse: %u\n", maxMosse);
-}
-
-void debugNastro(NastroConArray* nastro)
-{
-	printf("Debug nastro at: %p\n", nastro);
-	printf("Nastro: ");
-	for(int i = 0; i < nastro->lunghezza; i++)
-	{
-		printf(" %c", nastro->nastroArray[i]);
-	}
-	printf("\n");
 }
 
 
@@ -491,18 +471,6 @@ void freeCoda()
 	ultimoInCodaInformazioni = NULL;
 }
 
-unsigned long lunghezzaCoda()
-{
-	InformazioniTransizione* curr = codaInformazioni;
-	unsigned long lungCoda = 0;
-	while(curr != NULL)
-	{
-		lungCoda++;
-		curr = curr->next;
-	}
-	return lungCoda;
-}
-
 
 // ######## FUNZIONI PER ESECUZIONE IN AMPIEZZA ########
 void caricaNastroEdEsegui()
@@ -524,11 +492,6 @@ void caricaNastroEdEsegui()
 
 		// esecuzione
 		eseguiMtInAmpiezza(nastro);
-
-		#ifdef DEBUG_NUM_COPIE_NASTRO
-		printf("Usate al massimo %lu copie di nastro per risultato^\n", copieDiNastro);
-		copieDiNastro = 1;
-		#endif
 
 		if(!raggiuntoFineFile)
 		{
@@ -639,12 +602,6 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 
 		// aggiungi in coda
 		aggiungiInCoda(primoPosto);
-
-		#ifdef DEBUG_NUM_COPIE_NASTRO
-		unsigned long currLung = lunghezzaCoda();
-		if(currLung > copieDiNastro)
-			copieDiNastro = currLung;
-		#endif
 
 		// estrai primo in coda
 		primoPosto = estraiDaCoda();
