@@ -21,8 +21,10 @@ unsigned int maxMosse;
 // variabili per gestione nastro
 typedef struct
 {
-	char* nastroArray;
-	int lunghezza;
+	char* nastroDx;
+	char* nastroSx;
+	int lunghezzaDx;
+	int lunghezzaSx;
 } NastroConArray;
 
 
@@ -55,7 +57,7 @@ typedef struct InformazioniTransizioneStruct
 	int statoCorrente;
 	unsigned int numeroMossa;
 	NastroConArray* nastro;
-	unsigned int testina;
+	int testina;
 	struct InformazioniTransizioneStruct* next;
 } InformazioniTransizione;
 InformazioniTransizione* codaInformazioni = NULL;
@@ -84,7 +86,8 @@ void debugStatiAcc();
 void debugMaxMosse();
 
 NastroConArray* duplicaNastro(NastroConArray* nastro);
-void allargaNastroArray(NastroConArray* nastro);
+void allargaNastroDestro(NastroConArray* nastro);
+void allargaNastroSinistro(NastroConArray* nastro);
 void freeNastro(NastroConArray* nastro);
 
 void aggiungiInCoda(InformazioniTransizione* posto);
@@ -93,8 +96,8 @@ void freeCoda();
 
 void caricaNastroEdEsegui();
 void eseguiMtInAmpiezza(NastroConArray* nastro);
-void eseguiMovimentoDestraTestina(NastroConArray* nastro, unsigned int* testina);
-void eseguiMovimentoSinistraTestina(NastroConArray* nastro, unsigned int* testina);
+void eseguiMovimentoDestraTestina(NastroConArray* nastro, int* testina);
+void eseguiMovimentoSinistraTestina(NastroConArray* nastro, int* testina);
 
 int main()
 {
@@ -410,24 +413,45 @@ void debugMaxMosse()
 NastroConArray* duplicaNastro(NastroConArray* nastro)
 {
 	NastroConArray* newNastro = (NastroConArray*) malloc(sizeof(NastroConArray));
-	newNastro->nastroArray = (char*) malloc(nastro->lunghezza * sizeof(char));
-	newNastro->lunghezza = nastro->lunghezza;
 
-	for(unsigned int i = 0; i < nastro->lunghezza; i++)
-		newNastro->nastroArray[i] = nastro->nastroArray[i];
+	// copia nastro destro
+	newNastro->nastroDx = (char*) malloc(nastro->lunghezzaDx * sizeof(char));
+	newNastro->lunghezzaDx = nastro->lunghezzaDx;
+	for(unsigned int i = 0; i < nastro->lunghezzaDx; i++)
+		newNastro->nastroDx[i] = nastro->nastroDx[i];
+
+	// copia nastro sinistro
+	if(nastro->lunghezzaSx == 0)
+	{
+		newNastro->lunghezzaSx = 0;
+		newNastro->nastroSx = NULL;
+	} else
+	{
+		newNastro->nastroSx = (char*) malloc(nastro->lunghezzaSx * sizeof(char));
+		newNastro->lunghezzaSx = nastro->lunghezzaSx;
+		for(unsigned int i = 0; i < nastro->lunghezzaSx; i++)
+			newNastro->nastroSx[i] = nastro->nastroSx[i];
+	}
 
 	return newNastro;
 }
 
-void allargaNastroArray(NastroConArray* nastro)
+void allargaNastroDestro(NastroConArray* nastro)
 {
-	(nastro->lunghezza)++;
-	nastro->nastroArray = (char*) realloc(nastro->nastroArray, (nastro->lunghezza) * sizeof(char*));
+	(nastro->lunghezzaDx)++;
+	nastro->nastroDx = (char*) realloc(nastro->nastroDx, (nastro->lunghezzaDx) * sizeof(char*));
+}
+
+void allargaNastroSinistro(NastroConArray* nastro)
+{
+	(nastro->lunghezzaSx)++;
+	nastro->nastroSx = (char*) realloc(nastro->nastroSx, (nastro->lunghezzaSx) * sizeof(char*));
 }
 
 void freeNastro(NastroConArray* nastro)
 {
-	free(nastro->nastroArray);
+	free(nastro->nastroDx);
+	free(nastro->nastroSx);
 	free(nastro);
 }
 
@@ -486,9 +510,11 @@ void caricaNastroEdEsegui()
 		raggiuntoFineNastro = false;
 
 		NastroConArray* nastro = (NastroConArray*) malloc(sizeof(NastroConArray));
-		nastro->nastroArray = (char*) malloc(sizeof(char));
-		nastro->nastroArray[0] = ch;
-		nastro->lunghezza = 1;
+		nastro->nastroDx = (char*) malloc(sizeof(char));
+		nastro->nastroDx[0] = ch;
+		nastro->lunghezzaDx = 1;
+		nastro->nastroSx = NULL;
+		nastro->lunghezzaSx = 0;
 
 		// esecuzione
 		eseguiMtInAmpiezza(nastro);
@@ -522,7 +548,11 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 	while(primoPosto != NULL)
 	{
 		int statoCorrente = primoPosto->statoCorrente;
-		char charLetto = primoPosto->nastro->nastroArray[primoPosto->testina];
+		char charLetto;
+		if(primoPosto->testina >= 0)
+			charLetto = primoPosto->nastro->nastroDx[primoPosto->testina];
+		else
+			charLetto = primoPosto->nastro->nastroSx[-(primoPosto->testina + 1)];
 		SpecificheTransizione* transizioneValida = getPrimaTransizioneValida(statoCorrente, charLetto);
 
 		// se non c'è transizione valida in questo stato lo blocchiamo
@@ -583,7 +613,10 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 			postoInCodaLoop->next = NULL;
 
 			// esecuzione
-			postoInCodaLoop->nastro->nastroArray[postoInCodaLoop->testina] = transizioneValida->scritto;
+			if(postoInCodaLoop->testina >= 0)
+				postoInCodaLoop->nastro->nastroDx[postoInCodaLoop->testina] = transizioneValida->scritto;
+			else
+				postoInCodaLoop->nastro->nastroSx[-(postoInCodaLoop->testina + 1)] = transizioneValida->scritto;
 			if(transizioneValida->movimentoTestina == 'R')
 				eseguiMovimentoDestraTestina(postoInCodaLoop->nastro, &(postoInCodaLoop->testina));
 			if(transizioneValida->movimentoTestina == 'L')
@@ -594,7 +627,10 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 		}
 
 		// esecuzione prima transizione (non dobbiamo modificare il nastro finchè non duplicato)
-		primoPosto->nastro->nastroArray[primoPosto->testina] = scrittoPrimaTransizione;
+		if(primoPosto->testina >= 0)
+			primoPosto->nastro->nastroDx[primoPosto->testina] = scrittoPrimaTransizione;
+		else
+			primoPosto->nastro->nastroSx[-(primoPosto->testina + 1)] = scrittoPrimaTransizione;
 		if(movimTestinaPrimaTransizione == 'R')
 			eseguiMovimentoDestraTestina(primoPosto->nastro, &(primoPosto->testina));
 		if(movimTestinaPrimaTransizione == 'L')
@@ -610,9 +646,9 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 }
 
 // sposta la testina a destra (se raggiunto limite destro del nastro crea nuova casella)
-void eseguiMovimentoDestraTestina(NastroConArray* nastro, unsigned int* testina)
+void eseguiMovimentoDestraTestina(NastroConArray* nastro, int* testina)
 {
-	if((*testina) == (nastro->lunghezza - 1)) // si sta accedendo al limite destro dell'array
+	if((*testina) == (nastro->lunghezzaDx - 1)) // si sta accedendo al limite destro dell'array
 	{
 		int charDaScrivere = '_';
 		if(!raggiuntoFineNastro)
@@ -634,45 +670,36 @@ void eseguiMovimentoDestraTestina(NastroConArray* nastro, unsigned int* testina)
 
 				if(!(nastro == primoPosto->nastro)) // il nastro corrente in movimento non è quello esterno alla coda
 				{
-					allargaNastroArray(primoPosto->nastro); // crea nuovo posto in array
-					primoPosto->nastro->nastroArray[primoPosto->nastro->lunghezza - 1] = charDaScrivere; // scrivi carattere
+					allargaNastroDestro(primoPosto->nastro); // crea nuovo posto in array
+					primoPosto->nastro->nastroDx[primoPosto->nastro->lunghezzaDx - 1] = charDaScrivere; // scrivi carattere
 				}
 
 				// scrivo nuovo carattere in tutti i nastri nella coda
 				InformazioniTransizione* curr = codaInformazioni;
 				while(curr != NULL)
 				{
-					allargaNastroArray(curr->nastro); // crea nuovo posto in array
-					curr->nastro->nastroArray[curr->nastro->lunghezza - 1] = charDaScrivere; // scrivi carattere
+					allargaNastroDestro(curr->nastro); // crea nuovo posto in array
+					curr->nastro->nastroDx[curr->nastro->lunghezzaDx - 1] = charDaScrivere; // scrivi carattere
 
 					curr = curr->next;
 				}
 			}
 		}
 
-		allargaNastroArray(nastro); // crea nuovo posto in array
-		nastro->nastroArray[nastro->lunghezza - 1] = charDaScrivere; // scrivi carattere
+		allargaNastroDestro(nastro); // crea nuovo posto in array
+		nastro->nastroDx[nastro->lunghezzaDx - 1] = charDaScrivere; // scrivi carattere
 	}
-	(*testina) = (*testina) + 1;
+	(*testina) += 1;
 }
 
 // sposta la testina a sinistra (se raggiunto limite sinistro del nastro crea nuova casella)
-void eseguiMovimentoSinistraTestina(NastroConArray* nastro, unsigned int* testina)
+void eseguiMovimentoSinistraTestina(NastroConArray* nastro, int* testina)
 {
-	if((*testina) == 0) // si sta accedendo al limite sinistro dell'array
+	if((*testina) == -(nastro->lunghezzaSx)) // si sta accedendo al limite sinistro dell'array
 	{
-		// crea nuovo posto in array
-		allargaNastroArray(nastro);
-
-		// sposta elementi tutti a destra
-		for(int i = nastro->lunghezza - 1; i > 0; i--)
-			nastro->nastroArray[i] = nastro->nastroArray[i - 1];
-
-		// nuovo elemento (testina non deve essere aggiornata, rimane in 0)
-		nastro->nastroArray[0] = '_';
-	} else
-	{
-		(*testina) = (*testina) - 1;
+		allargaNastroSinistro(nastro); // crea nuovo posto in array
+		nastro->nastroSx[nastro->lunghezzaSx - 1] = '_'; // scrivi carattere
 	}
+	(*testina) -= 1;
 }
 
