@@ -8,6 +8,7 @@
 // costanti
 #define GRANDEZZA_ARRAY_STATI_INIZIALE 128
 #define FATTORE_DI_ALLARGAMENTO_ARRAY 64
+#define CHUNK_DI_ALLARGAMENTO 128
 
 // variabili per lettura file di input
 typedef enum {TR, ACC, MAX, RUN} InputCorrenteType;
@@ -87,7 +88,8 @@ void debugMaxMosse();
 
 NastroConArray* duplicaNastro(NastroConArray* nastro);
 void allargaNastroDestro(NastroConArray* nastro);
-void allargaNastroSinistro(NastroConArray* nastro);
+void allargaNastroDestroDiUnChunk(NastroConArray* nastro);
+void allargaNastroSinistroDiUnChunk(NastroConArray* nastro);
 void freeNastro(NastroConArray* nastro);
 
 void aggiungiInCoda(InformazioniTransizione* posto);
@@ -442,10 +444,26 @@ void allargaNastroDestro(NastroConArray* nastro)
 	nastro->nastroDx = (char*) realloc(nastro->nastroDx, (nastro->lunghezzaDx) * sizeof(char*));
 }
 
+void allargaNastroDestroDiUnChunk(NastroConArray* nastro)
+{
+	(nastro->lunghezzaDx) += CHUNK_DI_ALLARGAMENTO;
+	nastro->nastroDx = (char*) realloc(nastro->nastroDx, (nastro->lunghezzaDx) * sizeof(char*));
+	for(int i = (nastro->lunghezzaDx) - CHUNK_DI_ALLARGAMENTO + 1; i < nastro->lunghezzaDx; i++)
+		nastro->nastroDx[i] = '_';
+}
+
 void allargaNastroSinistro(NastroConArray* nastro)
 {
 	(nastro->lunghezzaSx)++;
 	nastro->nastroSx = (char*) realloc(nastro->nastroSx, (nastro->lunghezzaSx) * sizeof(char*));
+}
+
+void allargaNastroSinistroDiUnChunk(NastroConArray* nastro)
+{
+	(nastro->lunghezzaSx) += CHUNK_DI_ALLARGAMENTO;
+	nastro->nastroSx = (char*) realloc(nastro->nastroSx, (nastro->lunghezzaSx) * sizeof(char*));
+	for(int i = (nastro->lunghezzaSx) - CHUNK_DI_ALLARGAMENTO + 1; i < nastro->lunghezzaSx; i++)
+		nastro->nastroSx[i] = '_';
 }
 
 void freeNastro(NastroConArray* nastro)
@@ -568,7 +586,7 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 		if(controllaSeStatoDiAccettazione(transizioneValida->statoFinale))
 		{
 			printf("1\n");
-			freeNastro(primoPosto->nastro);
+			freeNastro(primoPosto->nastro); // c'è da fare la free del posto analizzato ora che è fuori dalla coda e poi la free dell'intera coda
 			free(primoPosto);
 			freeCoda();
 			return;
@@ -590,6 +608,7 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 		primoPosto->next = NULL;
 		char scrittoPrimaTransizione = transizioneValida->scritto;
 		char movimTestinaPrimaTransizione = transizioneValida->movimentoTestina;
+
 
 		while(transizioneValida->next != NULL)
 		{
@@ -632,6 +651,7 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 			// aggiungi in coda
 			aggiungiInCoda(postoInCodaLoop);
 		}
+
 
 		// esecuzione prima transizione (non dobbiamo modificare il nastro finchè non duplicato)
 		if(primoPosto->testina >= 0)
@@ -696,10 +716,16 @@ void eseguiMovimentoLimiteDestroTestina(NastroConArray* nastro, int* testina)
 				curr = curr->next;
 			}
 		}
-	}
 
-	allargaNastroDestro(nastro); // crea nuovo posto in array
-	nastro->nastroDx[nastro->lunghezzaDx - 1] = charDaScrivere; // scrivi carattere
+		// crea nuovo posto in array
+		allargaNastroDestro(nastro);
+		nastro->nastroDx[nastro->lunghezzaDx - 1] = charDaScrivere; // scrivi carattere
+	} else
+	{
+		// crea nuovo posto in array
+		allargaNastroDestro(nastro);
+		nastro->nastroDx[nastro->lunghezzaDx - 1] = charDaScrivere; // scrivi carattere
+	}
 }
 
 // sposta la testina a sinistra (se raggiunto limite sinistro del nastro crea nuova casella)
