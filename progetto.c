@@ -8,7 +8,7 @@
 // costanti
 #define GRANDEZZA_ARRAY_STATI_INIZIALE 128
 #define FATTORE_DI_ALLARGAMENTO_ARRAY 64
-#define CHUNK_DI_ALLARGAMENTO 128
+#define CHUNK_DI_ALLARGAMENTO 64
 
 // variabili per lettura file di input
 typedef enum {TR, ACC, MAX, RUN} InputCorrenteType;
@@ -65,12 +65,6 @@ InformazioniTransizione* codaInformazioni = NULL;
 InformazioniTransizione* ultimoInCodaInformazioni = NULL;
 
 
-// ottimizzazione lettura non totale del nastro
-bool raggiuntoFineNastro = false;
-bool raggiuntoFineFile = false;
-InformazioniTransizione* primoPosto;
-
-
 
 // ######## DICHIARAZIONE FUNZIONI ########
 void caricaDatiMT();
@@ -87,8 +81,9 @@ void debugStatiAcc();
 void debugMaxMosse();
 
 NastroConArray* duplicaNastro(NastroConArray* nastro);
-void allargaNastroDestro(NastroConArray* nastro);
+//void allargaNastroDestro(NastroConArray* nastro);
 void allargaNastroDestroDiUnChunk(NastroConArray* nastro);
+//void allargaNastroSinistro(NastroConArray* nastro);
 void allargaNastroSinistroDiUnChunk(NastroConArray* nastro);
 void freeNastro(NastroConArray* nastro);
 
@@ -444,13 +439,13 @@ void allargaNastroDestro(NastroConArray* nastro)
 	nastro->nastroDx = (char*) realloc(nastro->nastroDx, (nastro->lunghezzaDx) * sizeof(char*));
 }
 
-void allargaNastroDestroDiUnChunk(NastroConArray* nastro)
+/*void allargaNastroDestroDiUnChunk(NastroConArray* nastro)
 {
 	(nastro->lunghezzaDx) += CHUNK_DI_ALLARGAMENTO;
 	nastro->nastroDx = (char*) realloc(nastro->nastroDx, (nastro->lunghezzaDx) * sizeof(char*));
 	for(int i = (nastro->lunghezzaDx) - CHUNK_DI_ALLARGAMENTO + 1; i < nastro->lunghezzaDx; i++)
 		nastro->nastroDx[i] = '_';
-}
+}*/
 
 void allargaNastroSinistro(NastroConArray* nastro)
 {
@@ -458,13 +453,13 @@ void allargaNastroSinistro(NastroConArray* nastro)
 	nastro->nastroSx = (char*) realloc(nastro->nastroSx, (nastro->lunghezzaSx) * sizeof(char*));
 }
 
-void allargaNastroSinistroDiUnChunk(NastroConArray* nastro)
+/*void allargaNastroSinistroDiUnChunk(NastroConArray* nastro)
 {
 	(nastro->lunghezzaSx) += CHUNK_DI_ALLARGAMENTO;
 	nastro->nastroSx = (char*) realloc(nastro->nastroSx, (nastro->lunghezzaSx) * sizeof(char*));
 	for(int i = (nastro->lunghezzaSx) - CHUNK_DI_ALLARGAMENTO + 1; i < nastro->lunghezzaSx; i++)
 		nastro->nastroSx[i] = '_';
-}
+}*/
 
 void freeNastro(NastroConArray* nastro)
 {
@@ -556,7 +551,7 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 	char risultatoValido = '0';
 
 	// inizializza coda con stato iniziale
-	primoPosto = malloc(sizeof(InformazioniTransizione));
+	InformazioniTransizione* primoPosto = malloc(sizeof(InformazioniTransizione));
 	primoPosto->nastro = nastro;
 	primoPosto->testina = 0;
 	primoPosto->numeroMossa = 0;
