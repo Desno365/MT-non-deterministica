@@ -81,10 +81,6 @@ void debugStatiAcc();
 void debugMaxMosse();
 
 NastroConArray* duplicaNastro(NastroConArray* nastro);
-//void allargaNastroDestro(NastroConArray* nastro);
-void allargaNastroDestroDiUnChunk(NastroConArray* nastro);
-//void allargaNastroSinistro(NastroConArray* nastro);
-void allargaNastroSinistroDiUnChunk(NastroConArray* nastro);
 void freeNastro(NastroConArray* nastro);
 
 void aggiungiInCoda(InformazioniTransizione* posto);
@@ -93,8 +89,8 @@ void freeCoda();
 
 void caricaNastroEdEsegui();
 void eseguiMtInAmpiezza(NastroConArray* nastro);
-void eseguiMovimentoLimiteDestroTestina(NastroConArray* nastro, int* testina);
-void eseguiMovimentoLimiteSinistroTestina(NastroConArray* nastro, int* testina);
+void allargaNastroDestro(NastroConArray* nastro);
+void allargaNastroSinistro(NastroConArray* nastro);
 
 int main()
 {
@@ -433,34 +429,6 @@ NastroConArray* duplicaNastro(NastroConArray* nastro)
 	return newNastro;
 }
 
-void allargaNastroDestro(NastroConArray* nastro)
-{
-	(nastro->lunghezzaDx)++;
-	nastro->nastroDx = (char*) realloc(nastro->nastroDx, (nastro->lunghezzaDx) * sizeof(char*));
-}
-
-/*void allargaNastroDestroDiUnChunk(NastroConArray* nastro)
-{
-	(nastro->lunghezzaDx) += CHUNK_DI_ALLARGAMENTO;
-	nastro->nastroDx = (char*) realloc(nastro->nastroDx, (nastro->lunghezzaDx) * sizeof(char*));
-	for(int i = (nastro->lunghezzaDx) - CHUNK_DI_ALLARGAMENTO + 1; i < nastro->lunghezzaDx; i++)
-		nastro->nastroDx[i] = '_';
-}*/
-
-void allargaNastroSinistro(NastroConArray* nastro)
-{
-	(nastro->lunghezzaSx)++;
-	nastro->nastroSx = (char*) realloc(nastro->nastroSx, (nastro->lunghezzaSx) * sizeof(char*));
-}
-
-/*void allargaNastroSinistroDiUnChunk(NastroConArray* nastro)
-{
-	(nastro->lunghezzaSx) += CHUNK_DI_ALLARGAMENTO;
-	nastro->nastroSx = (char*) realloc(nastro->nastroSx, (nastro->lunghezzaSx) * sizeof(char*));
-	for(int i = (nastro->lunghezzaSx) - CHUNK_DI_ALLARGAMENTO + 1; i < nastro->lunghezzaSx; i++)
-		nastro->nastroSx[i] = '_';
-}*/
-
 void freeNastro(NastroConArray* nastro)
 {
 	free(nastro->nastroDx);
@@ -634,13 +602,13 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 			if(transizioneValida->movimentoTestina == 'R')
 			{
 				if(postoInCodaLoop->testina == (postoInCodaLoop->nastro->lunghezzaDx - 1)) // si sta accedendo al limite destro dell'array
-					eseguiMovimentoLimiteDestroTestina(postoInCodaLoop->nastro, &(postoInCodaLoop->testina));
-				postoInCodaLoop->testina += 1;
+					allargaNastroDestro(postoInCodaLoop->nastro);
+				(postoInCodaLoop->testina)++;
 			} else if(transizioneValida->movimentoTestina == 'L')
 			{
 				if(postoInCodaLoop->testina == -(postoInCodaLoop->nastro->lunghezzaSx)) // si sta accedendo al limite sinistro dell'array
-					eseguiMovimentoLimiteSinistroTestina(postoInCodaLoop->nastro, &(postoInCodaLoop->testina));
-				postoInCodaLoop->testina -= 1;
+					allargaNastroSinistro(postoInCodaLoop->nastro);
+				(postoInCodaLoop->testina)--;
 			}
 
 			// aggiungi in coda
@@ -656,13 +624,13 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 		if(movimTestinaPrimaTransizione == 'R')
 		{
 			if(primoPosto->testina == (primoPosto->nastro->lunghezzaDx - 1)) // si sta accedendo al limite destro dell'array
-				eseguiMovimentoLimiteDestroTestina(primoPosto->nastro, &(primoPosto->testina));
-			primoPosto->testina += 1;
+				allargaNastroDestro(primoPosto->nastro);
+			(primoPosto->testina)++;
 		} else if(movimTestinaPrimaTransizione == 'L')
 		{
 			if(primoPosto->testina == -(primoPosto->nastro->lunghezzaSx)) // si sta accedendo al limite sinistro dell'array
-				eseguiMovimentoLimiteSinistroTestina(primoPosto->nastro, &(primoPosto->testina));
-			primoPosto->testina -= 1;
+				allargaNastroSinistro(primoPosto->nastro);
+			(primoPosto->testina)--;
 		}
 
 		// aggiungi in coda
@@ -674,17 +642,33 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 	printf("%c\n", risultatoValido);
 }
 
-// sposta la testina a destra (se raggiunto limite destro del nastro crea nuova casella)
-void eseguiMovimentoLimiteDestroTestina(NastroConArray* nastro, int* testina)
+// raggiunto limite destro del nastro crea nuova casella
+void allargaNastroDestro(NastroConArray* nastro)
 {
-	allargaNastroDestro(nastro); // crea nuovo posto in array
+	// metodo a singola cella
+	(nastro->lunghezzaDx)++;
+	nastro->nastroDx = (char*) realloc(nastro->nastroDx, (nastro->lunghezzaDx) * sizeof(char*));
 	nastro->nastroDx[nastro->lunghezzaDx - 1] = '_'; // scrivi carattere
+
+	// metodo a chunk
+	/*(nastro->lunghezzaDx) += CHUNK_DI_ALLARGAMENTO;
+	nastro->nastroDx = (char*) realloc(nastro->nastroDx, (nastro->lunghezzaDx) * sizeof(char*));
+	for(int i = (nastro->lunghezzaDx) - CHUNK_DI_ALLARGAMENTO; i < nastro->lunghezzaDx; i++)
+		nastro->nastroDx[i] = '_';*/
 }
 
-// sposta la testina a sinistra (se raggiunto limite sinistro del nastro crea nuova casella)
-void eseguiMovimentoLimiteSinistroTestina(NastroConArray* nastro, int* testina)
+// raggiunto limite sinistro del nastro crea nuova casella
+void allargaNastroSinistro(NastroConArray* nastro)
 {
-	allargaNastroSinistro(nastro); // crea nuovo posto in array
+	// metodo a singola cella
+	(nastro->lunghezzaSx)++;
+	nastro->nastroSx = (char*) realloc(nastro->nastroSx, (nastro->lunghezzaSx) * sizeof(char*));
 	nastro->nastroSx[nastro->lunghezzaSx - 1] = '_'; // scrivi carattere
+
+	// metodo a chunk
+	/*(nastro->lunghezzaSx) += CHUNK_DI_ALLARGAMENTO;
+	nastro->nastroSx = (char*) realloc(nastro->nastroSx, (nastro->lunghezzaSx) * sizeof(char*));
+	for(int i = (nastro->lunghezzaSx) - CHUNK_DI_ALLARGAMENTO; i < nastro->lunghezzaSx; i++)
+		nastro->nastroSx[i] = '_';*/
 }
 
