@@ -523,10 +523,8 @@ void caricaNastroEdEsegui()
 	if(ch == '\n')
 		ch = getchar();
 
-	while(ch != EOF && !raggiuntoFineFile) // leggi fino a fine file
+	while(ch != EOF)
 	{
-		raggiuntoFineNastro = false;
-
 		NastroConArray* nastro = (NastroConArray*) malloc(sizeof(NastroConArray));
 		nastro->nastroDx = (char*) malloc(sizeof(char));
 		nastro->nastroDx[0] = ch;
@@ -534,20 +532,22 @@ void caricaNastroEdEsegui()
 		nastro->nastroSx = NULL;
 		nastro->lunghezzaSx = 0;
 
+		ch = getchar();
+		while(ch != EOF && ch != '\n' && ch != '\r')
+		{
+			(nastro->lunghezzaDx)++;
+			nastro->nastroDx = (char*) realloc(nastro->nastroDx, (nastro->lunghezzaDx) * sizeof(char*));
+			nastro->nastroDx[nastro->lunghezzaDx - 1] = ch;
+			ch = getchar();
+		}
+
 		// esecuzione
 		eseguiMtInAmpiezza(nastro);
 
-		if(!raggiuntoFineFile)
-		{
-			if(!raggiuntoFineNastro) // devo scorrere l'intera riga
-			{
-				while(ch != '\n' && ch != EOF)
-				{
-					ch = getchar();
-				}
-			}
+		if(ch == '\r')
 			ch = getchar();
-		}
+		if(ch == '\n')
+			ch = getchar();
 	}
 }
 
@@ -682,50 +682,8 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 // sposta la testina a destra (se raggiunto limite destro del nastro crea nuova casella)
 void eseguiMovimentoLimiteDestroTestina(NastroConArray* nastro, int* testina)
 {
-	int charDaScrivere = '_';
-	if(!raggiuntoFineNastro)
-	{
-		int ch = getchar();
-		if(ch == '\r')
-			ch = getchar();
-
-		if(ch == '\n')
-		{
-			raggiuntoFineNastro = true;
-		} else if (ch == EOF)
-		{
-			raggiuntoFineNastro = true;
-			raggiuntoFineFile = true;
-		} else // ch carattere da mettere nel nastro (nei nastri)
-		{
-			charDaScrivere = ch;
-
-			if(!(nastro == primoPosto->nastro)) // il nastro corrente in movimento non è quello esterno alla coda
-			{
-				allargaNastroDestro(primoPosto->nastro); // crea nuovo posto in array
-				primoPosto->nastro->nastroDx[primoPosto->nastro->lunghezzaDx - 1] = charDaScrivere; // scrivi carattere
-			}
-
-			// scrivo nuovo carattere in tutti i nastri nella coda
-			InformazioniTransizione* curr = codaInformazioni;
-			while(curr != NULL)
-			{
-				allargaNastroDestro(curr->nastro); // crea nuovo posto in array
-				curr->nastro->nastroDx[curr->nastro->lunghezzaDx - 1] = charDaScrivere; // scrivi carattere
-
-				curr = curr->next;
-			}
-		}
-
-		// crea nuovo posto in array
-		allargaNastroDestro(nastro);
-		nastro->nastroDx[nastro->lunghezzaDx - 1] = charDaScrivere; // scrivi carattere
-	} else
-	{
-		// crea nuovo posto in array
-		allargaNastroDestro(nastro);
-		nastro->nastroDx[nastro->lunghezzaDx - 1] = charDaScrivere; // scrivi carattere
-	}
+	allargaNastroDestro(nastro); // crea nuovo posto in array
+	nastro->nastroDx[nastro->lunghezzaDx - 1] = '_'; // scrivi carattere
 }
 
 // sposta la testina a sinistra (se raggiunto limite sinistro del nastro crea nuova casella)
