@@ -410,8 +410,7 @@ NastroConArray* duplicaNastro(NastroConArray* nastro)
 	// copia nastro destro
 	newNastro->nastroDx = (char*) malloc(nastro->lunghezzaDx * sizeof(char));
 	newNastro->lunghezzaDx = nastro->lunghezzaDx;
-	for(unsigned int i = 0; i < nastro->lunghezzaDx; i++)
-		newNastro->nastroDx[i] = nastro->nastroDx[i];
+	memcpy(newNastro->nastroDx, nastro->nastroDx, nastro->lunghezzaDx);
 
 	// copia nastro sinistro
 	if(nastro->lunghezzaSx == 0)
@@ -422,8 +421,8 @@ NastroConArray* duplicaNastro(NastroConArray* nastro)
 	{
 		newNastro->nastroSx = (char*) malloc(nastro->lunghezzaSx * sizeof(char));
 		newNastro->lunghezzaSx = nastro->lunghezzaSx;
-		for(unsigned int i = 0; i < nastro->lunghezzaSx; i++)
-			newNastro->nastroSx[i] = nastro->nastroSx[i];
+		memcpy(newNastro->nastroSx, nastro->nastroSx, nastro->lunghezzaSx);
+
 	}
 
 	return newNastro;
