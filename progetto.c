@@ -19,16 +19,6 @@ InputCorrenteType inputCorrente = TR;
 unsigned int maxMosse;
 
 
-// variabili per gestione nastro
-typedef struct
-{
-	char* nastroDx;
-	char* nastroSx;
-	int lunghezzaDx;
-	int lunghezzaSx;
-} NastroConArray;
-
-
 // variabili per stati di accettazione
 bool* arrayStatiAcc;
 unsigned int numeroDiStatiAccMax;
@@ -53,16 +43,22 @@ unsigned int numeroDiStati;
 
 
 // sistema in ampiezza
-typedef struct InformazioniTransizioneStruct
+typedef struct InformazioniConfiguazioneStruct
 {
 	int statoCorrente;
 	unsigned int numeroMossa;
-	NastroConArray* nastro;
+
+	// nastro
+	char* nastroDx;
+	char* nastroSx;
+	int lunghezzaDx;
+	int lunghezzaSx;
+
 	int testina;
-	struct InformazioniTransizioneStruct* next;
-} InformazioniTransizione;
-InformazioniTransizione* codaInformazioni = NULL;
-InformazioniTransizione* ultimoInCodaInformazioni = NULL;
+	struct InformazioniConfiguazioneStruct* next;
+} InformazioniConfiguazione;
+InformazioniConfiguazione* codaInformazioni = NULL;
+InformazioniConfiguazione* ultimoInCodaInformazioni = NULL;
 
 
 
@@ -79,18 +75,19 @@ bool controllaSeStatoDiAccettazione(int stato);
 void debugTransizioni();
 void debugStatiAcc();
 void debugMaxMosse();
+void debugNastro(InformazioniConfiguazione* configurazione);
 
-NastroConArray* duplicaNastro(NastroConArray* nastro);
-void freeNastro(NastroConArray* nastro);
+InformazioniConfiguazione* duplicaConfigurazione(InformazioniConfiguazione* configurazione);
 
-void aggiungiInCoda(InformazioniTransizione* posto);
-InformazioniTransizione* estraiDaCoda();
+void aggiungiInCoda(InformazioniConfiguazione* posto);
+InformazioniConfiguazione* estraiDaCoda();
+void freeConfigurazione(InformazioniConfiguazione* configurazione);
 void freeCoda();
 
 void caricaNastroEdEsegui();
-void eseguiMtInAmpiezza(NastroConArray* nastro);
-void allargaNastroDestro(NastroConArray* nastro);
-void allargaNastroSinistro(NastroConArray* nastro);
+void eseguiMtInAmpiezza(InformazioniConfiguazione* primoPosto);
+void allargaNastroDestro(InformazioniConfiguazione* configurazione);
+void allargaNastroSinistro(InformazioniConfiguazione* configurazione);
 
 int main()
 {
@@ -401,43 +398,25 @@ void debugMaxMosse()
 	printf("Max mosse: %u\n", maxMosse);
 }
 
-
-// ######## FUNZIONI PER NASTRO INPUT ########
-NastroConArray* duplicaNastro(NastroConArray* nastro)
+void debugNastro(InformazioniConfiguazione* configurazione)
 {
-	NastroConArray* newNastro = (NastroConArray*) malloc(sizeof(NastroConArray));
+   if(configurazione->nastroSx != NULL)
+   {
+		for(int i = configurazione->lunghezzaSx; i > 0; i--)
+			printf("%c", configurazione->nastroSx[i - 1]);
+   }
 
-	// copia nastro destro
-	newNastro->nastroDx = (char*) malloc(nastro->lunghezzaDx * sizeof(char));
-	newNastro->lunghezzaDx = nastro->lunghezzaDx;
-	memcpy(newNastro->nastroDx, nastro->nastroDx, nastro->lunghezzaDx);
-
-	// copia nastro sinistro
-	if(nastro->lunghezzaSx == 0)
+	if(configurazione->nastroDx != NULL)
 	{
-		newNastro->lunghezzaSx = 0;
-		newNastro->nastroSx = NULL;
-	} else
-	{
-		newNastro->nastroSx = (char*) malloc(nastro->lunghezzaSx * sizeof(char));
-		newNastro->lunghezzaSx = nastro->lunghezzaSx;
-		memcpy(newNastro->nastroSx, nastro->nastroSx, nastro->lunghezzaSx);
-
+		for(int i = 0; i < configurazione->lunghezzaDx; i++)
+			printf("%c", configurazione->nastroDx[i]);
 	}
-
-	return newNastro;
 }
 
-void freeNastro(NastroConArray* nastro)
-{
-	free(nastro->nastroDx);
-	free(nastro->nastroSx);
-	free(nastro);
-}
 
 
 // ######## FUNZIONI PER CODA DI ATTESA ESECUZIONE IN AMPIEZZA ########
-void aggiungiInCoda(InformazioniTransizione* posto)
+void aggiungiInCoda(InformazioniConfiguazione* posto)
 {
 	if(codaInformazioni == NULL)
 	{
@@ -450,9 +429,9 @@ void aggiungiInCoda(InformazioniTransizione* posto)
 	}
 }
 
-InformazioniTransizione* estraiDaCoda()
+InformazioniConfiguazione* estraiDaCoda()
 {
-	InformazioniTransizione* tmp = codaInformazioni;
+	InformazioniConfiguazione* tmp = codaInformazioni;
 	if(codaInformazioni != NULL)
 		codaInformazioni = codaInformazioni->next;
 	if(codaInformazioni == NULL)
@@ -460,20 +439,55 @@ InformazioniTransizione* estraiDaCoda()
 	return tmp;
 }
 
+InformazioniConfiguazione* duplicaConfigurazione(InformazioniConfiguazione* configurazione)
+{
+	InformazioniConfiguazione* newConfig = (InformazioniConfiguazione*) malloc(sizeof(InformazioniConfiguazione));
+	newConfig->testina = configurazione->testina;
+	newConfig->numeroMossa = configurazione->numeroMossa;
+	newConfig->next = NULL;
+
+	// copia nastro destro
+	newConfig->nastroDx = (char*) malloc(configurazione->lunghezzaDx * sizeof(char));
+	newConfig->lunghezzaDx = configurazione->lunghezzaDx;
+	memcpy(newConfig->nastroDx, configurazione->nastroDx, configurazione->lunghezzaDx);
+
+	// copia nastro sinistro
+	if(configurazione->lunghezzaSx == 0)
+	{
+		newConfig->lunghezzaSx = 0;
+		newConfig->nastroSx = NULL;
+	} else
+	{
+		newConfig->nastroSx = (char*) malloc(configurazione->lunghezzaSx * sizeof(char));
+		newConfig->lunghezzaSx = configurazione->lunghezzaSx;
+		memcpy(newConfig->nastroSx, configurazione->nastroSx, configurazione->lunghezzaSx);
+
+	}
+
+	return newConfig;
+}
+
+void freeConfigurazione(InformazioniConfiguazione* configurazione)
+{
+	free(configurazione->nastroDx);
+	free(configurazione->nastroSx);
+	free(configurazione);
+}
+
 void freeCoda()
 {
-	InformazioniTransizione* curr = codaInformazioni;
-	InformazioniTransizione* daEliminare;
+	InformazioniConfiguazione* curr = codaInformazioni;
+	InformazioniConfiguazione* daEliminare;
 	while(curr != NULL)
 	{
-		freeNastro(curr->nastro);
 		daEliminare = curr;
 		curr = curr->next;
-		free(daEliminare);
+		freeConfigurazione(daEliminare);
 	}
 	codaInformazioni = NULL;
 	ultimoInCodaInformazioni = NULL;
 }
+
 
 
 // ######## FUNZIONI PER ESECUZIONE IN AMPIEZZA ########
@@ -487,24 +501,28 @@ void caricaNastroEdEsegui()
 
 	while(ch != EOF)
 	{
-		NastroConArray* nastro = (NastroConArray*) malloc(sizeof(NastroConArray));
-		nastro->nastroDx = (char*) malloc(sizeof(char));
-		nastro->nastroDx[0] = ch;
-		nastro->lunghezzaDx = 1;
-		nastro->nastroSx = NULL;
-		nastro->lunghezzaSx = 0;
+		InformazioniConfiguazione* primaConfigurazione = malloc(sizeof(InformazioniConfiguazione));
+		primaConfigurazione->nastroDx = (char*) malloc(sizeof(char));
+		primaConfigurazione->nastroDx[0] = ch;
+		primaConfigurazione->lunghezzaDx = 1;
+		primaConfigurazione->nastroSx = NULL;
+		primaConfigurazione->lunghezzaSx = 0;
+		primaConfigurazione->testina = 0;
+		primaConfigurazione->numeroMossa = 0;
+		primaConfigurazione->statoCorrente = 0;
+		primaConfigurazione->next = NULL;
 
 		ch = getchar();
 		while(ch != EOF && ch != '\n' && ch != '\r')
 		{
-			(nastro->lunghezzaDx)++;
-			nastro->nastroDx = (char*) realloc(nastro->nastroDx, (nastro->lunghezzaDx) * sizeof(char*));
-			nastro->nastroDx[nastro->lunghezzaDx - 1] = ch;
+			(primaConfigurazione->lunghezzaDx)++;
+			primaConfigurazione->nastroDx = (char*) realloc(primaConfigurazione->nastroDx, (primaConfigurazione->lunghezzaDx) * sizeof(char*));
+			primaConfigurazione->nastroDx[primaConfigurazione->lunghezzaDx - 1] = ch;
 			ch = getchar();
 		}
 
 		// esecuzione
-		eseguiMtInAmpiezza(nastro);
+		eseguiMtInAmpiezza(primaConfigurazione);
 
 		if(ch == '\r')
 			ch = getchar();
@@ -513,34 +531,25 @@ void caricaNastroEdEsegui()
 	}
 }
 
-void eseguiMtInAmpiezza(NastroConArray* nastro)
+void eseguiMtInAmpiezza(InformazioniConfiguazione* primoPosto)
 {
 	char risultatoValido = '0';
-
-	// inizializza coda con stato iniziale
-	InformazioniTransizione* primoPosto = malloc(sizeof(InformazioniTransizione));
-	primoPosto->nastro = nastro;
-	primoPosto->testina = 0;
-	primoPosto->numeroMossa = 0;
-	primoPosto->statoCorrente = 0;
-	primoPosto->next = NULL;
 
 	while(primoPosto != NULL)
 	{
 		int statoCorrente = primoPosto->statoCorrente;
 		char charLetto;
 		if(primoPosto->testina >= 0)
-			charLetto = primoPosto->nastro->nastroDx[primoPosto->testina];
+			charLetto = primoPosto->nastroDx[primoPosto->testina];
 		else
-			charLetto = primoPosto->nastro->nastroSx[-(primoPosto->testina + 1)];
+			charLetto = primoPosto->nastroSx[-(primoPosto->testina + 1)];
 		SpecificheTransizione* transizioneValida = getPrimaTransizioneValida(statoCorrente, charLetto);
 
 		// se non c'è transizione valida in questo stato lo blocchiamo
 		if(transizioneValida == NULL)
 		{
-			freeNastro(primoPosto->nastro);
-			free(primoPosto);
-			primoPosto = estraiDaCoda();
+			freeConfigurazione(primoPosto);
+            primoPosto = estraiDaCoda();
 			continue;
 		}
 
@@ -548,8 +557,7 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 		if(controllaSeStatoDiAccettazione(transizioneValida->statoFinale))
 		{
 			printf("1\n");
-			freeNastro(primoPosto->nastro); // c'è da fare la free del posto analizzato ora che è fuori dalla coda e poi la free dell'intera coda
-			free(primoPosto);
+			freeConfigurazione(primoPosto); // c'è da fare la free del posto analizzato ora che è fuori dalla coda e poi la free dell'intera coda
 			freeCoda();
 			return;
 		}
@@ -559,8 +567,7 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 		if(primoPosto->numeroMossa >= maxMosse)
 		{
 			risultatoValido = 'U';
-			freeNastro(primoPosto->nastro);
-			free(primoPosto);
+			freeConfigurazione(primoPosto);
 			primoPosto = estraiDaCoda();
 			continue;
 		}
@@ -580,33 +587,28 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 			if(controllaSeStatoDiAccettazione(transizioneValida->statoFinale))
 			{
 				printf("1\n");
-				freeNastro(primoPosto->nastro); // c'è da fare la free del posto analizzato ora che è fuori dalla coda e poi la free dell'intera coda
-				free(primoPosto);
+				freeConfigurazione(primoPosto); // c'è da fare la free del posto analizzato ora che è fuori dalla coda e poi la free dell'intera coda
 				freeCoda();
 				return;
 			}
 
-			InformazioniTransizione* postoInCodaLoop = malloc(sizeof(InformazioniTransizione));
-			postoInCodaLoop->testina = primoPosto->testina;
-			postoInCodaLoop->nastro = duplicaNastro(primoPosto->nastro);
-			postoInCodaLoop->numeroMossa = primoPosto->numeroMossa;
+			InformazioniConfiguazione* postoInCodaLoop = duplicaConfigurazione(primoPosto);
 			postoInCodaLoop->statoCorrente = transizioneValida->statoFinale;
-			postoInCodaLoop->next = NULL;
 
 			// esecuzione
 			if(postoInCodaLoop->testina >= 0)
-				postoInCodaLoop->nastro->nastroDx[postoInCodaLoop->testina] = transizioneValida->scritto;
+				postoInCodaLoop->nastroDx[postoInCodaLoop->testina] = transizioneValida->scritto;
 			else
-				postoInCodaLoop->nastro->nastroSx[-(postoInCodaLoop->testina + 1)] = transizioneValida->scritto;
+				postoInCodaLoop->nastroSx[-(postoInCodaLoop->testina + 1)] = transizioneValida->scritto;
 			if(transizioneValida->movimentoTestina == 'R')
 			{
-				if(postoInCodaLoop->testina == (postoInCodaLoop->nastro->lunghezzaDx - 1)) // si sta accedendo al limite destro dell'array
-					allargaNastroDestro(postoInCodaLoop->nastro);
+				if(postoInCodaLoop->testina == (postoInCodaLoop->lunghezzaDx - 1)) // si sta accedendo al limite destro dell'array
+					allargaNastroDestro(postoInCodaLoop);
 				(postoInCodaLoop->testina)++;
 			} else if(transizioneValida->movimentoTestina == 'L')
 			{
-				if(postoInCodaLoop->testina == -(postoInCodaLoop->nastro->lunghezzaSx)) // si sta accedendo al limite sinistro dell'array
-					allargaNastroSinistro(postoInCodaLoop->nastro);
+				if(postoInCodaLoop->testina == -(postoInCodaLoop->lunghezzaSx)) // si sta accedendo al limite sinistro dell'array
+					allargaNastroSinistro(postoInCodaLoop);
 				(postoInCodaLoop->testina)--;
 			}
 
@@ -617,18 +619,18 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 
 		// esecuzione prima transizione (non dobbiamo modificare il nastro finchè non duplicato)
 		if(primoPosto->testina >= 0)
-			primoPosto->nastro->nastroDx[primoPosto->testina] = scrittoPrimaTransizione;
+			primoPosto->nastroDx[primoPosto->testina] = scrittoPrimaTransizione;
 		else
-			primoPosto->nastro->nastroSx[-(primoPosto->testina + 1)] = scrittoPrimaTransizione;
+			primoPosto->nastroSx[-(primoPosto->testina + 1)] = scrittoPrimaTransizione;
 		if(movimTestinaPrimaTransizione == 'R')
 		{
-			if(primoPosto->testina == (primoPosto->nastro->lunghezzaDx - 1)) // si sta accedendo al limite destro dell'array
-				allargaNastroDestro(primoPosto->nastro);
+			if(primoPosto->testina == (primoPosto->lunghezzaDx - 1)) // si sta accedendo al limite destro dell'array
+				allargaNastroDestro(primoPosto);
 			(primoPosto->testina)++;
 		} else if(movimTestinaPrimaTransizione == 'L')
 		{
-			if(primoPosto->testina == -(primoPosto->nastro->lunghezzaSx)) // si sta accedendo al limite sinistro dell'array
-				allargaNastroSinistro(primoPosto->nastro);
+			if(primoPosto->testina == -(primoPosto->lunghezzaSx)) // si sta accedendo al limite sinistro dell'array
+				allargaNastroSinistro(primoPosto);
 			(primoPosto->testina)--;
 		}
 
@@ -641,33 +643,33 @@ void eseguiMtInAmpiezza(NastroConArray* nastro)
 	printf("%c\n", risultatoValido);
 }
 
-// raggiunto limite destro del nastro crea nuova casella
-void allargaNastroDestro(NastroConArray* nastro)
+// raggiunto limite destro del configurazione crea nuova casella
+void allargaNastroDestro(InformazioniConfiguazione* configurazione)
 {
 	// metodo a singola cella
-	(nastro->lunghezzaDx)++;
-	nastro->nastroDx = (char*) realloc(nastro->nastroDx, (nastro->lunghezzaDx) * sizeof(char*));
-	nastro->nastroDx[nastro->lunghezzaDx - 1] = '_'; // scrivi carattere
+	(configurazione->lunghezzaDx)++;
+	configurazione->nastroDx = (char*) realloc(configurazione->nastroDx, (configurazione->lunghezzaDx) * sizeof(char*));
+	configurazione->nastroDx[configurazione->lunghezzaDx - 1] = '_'; // scrivi carattere
 
 	// metodo a chunk
-	/*(nastro->lunghezzaDx) += CHUNK_DI_ALLARGAMENTO;
-	nastro->nastroDx = (char*) realloc(nastro->nastroDx, (nastro->lunghezzaDx) * sizeof(char*));
-	for(int i = (nastro->lunghezzaDx) - CHUNK_DI_ALLARGAMENTO; i < nastro->lunghezzaDx; i++)
-		nastro->nastroDx[i] = '_';*/
+	/*(configurazione->lunghezzaDx) += CHUNK_DI_ALLARGAMENTO;
+	configurazione->nastroDx = (char*) realloc(configurazione->nastroDx, (configurazione->lunghezzaDx) * sizeof(char*));
+	for(int i = (configurazione->lunghezzaDx) - CHUNK_DI_ALLARGAMENTO; i < configurazione->lunghezzaDx; i++)
+		configurazione->nastroDx[i] = '_';*/
 }
 
-// raggiunto limite sinistro del nastro crea nuova casella
-void allargaNastroSinistro(NastroConArray* nastro)
+// raggiunto limite sinistro del configurazione crea nuova casella
+void allargaNastroSinistro(InformazioniConfiguazione* configurazione)
 {
 	// metodo a singola cella
-	(nastro->lunghezzaSx)++;
-	nastro->nastroSx = (char*) realloc(nastro->nastroSx, (nastro->lunghezzaSx) * sizeof(char*));
-	nastro->nastroSx[nastro->lunghezzaSx - 1] = '_'; // scrivi carattere
+	(configurazione->lunghezzaSx)++;
+	configurazione->nastroSx = (char*) realloc(configurazione->nastroSx, (configurazione->lunghezzaSx) * sizeof(char*));
+	configurazione->nastroSx[configurazione->lunghezzaSx - 1] = '_'; // scrivi carattere
 
 	// metodo a chunk
-	/*(nastro->lunghezzaSx) += CHUNK_DI_ALLARGAMENTO;
-	nastro->nastroSx = (char*) realloc(nastro->nastroSx, (nastro->lunghezzaSx) * sizeof(char*));
-	for(int i = (nastro->lunghezzaSx) - CHUNK_DI_ALLARGAMENTO; i < nastro->lunghezzaSx; i++)
-		nastro->nastroSx[i] = '_';*/
+	/*(configurazione->lunghezzaSx) += CHUNK_DI_ALLARGAMENTO;
+	configurazione->nastroSx = (char*) realloc(configurazione->nastroSx, (configurazione->lunghezzaSx) * sizeof(char*));
+	for(int i = (configurazione->lunghezzaSx) - CHUNK_DI_ALLARGAMENTO; i < configurazione->lunghezzaSx; i++)
+		configurazione->nastroSx[i] = '_';*/
 }
 
