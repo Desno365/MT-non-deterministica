@@ -557,7 +557,7 @@ void eseguiMtInAmpiezza(InformazioniConfiguazione* primoPosto)
 		// loop check
 		if(transizioneValida->next == NULL) // deterministico
 		{
-			if(charLetto == '_' && statoCorrente == transizioneValida->statoFinale) // N _ * * N
+			if(charLetto == '_' && statoCorrente == transizioneValida->statoFinale && (statiInMT[statoCorrente]->end - statiInMT[statoCorrente]->start) == 0) // autoanello con N _ * * N
 			{
 				risultatoValido = 'U';
 				freeConfigurazione(primoPosto);
