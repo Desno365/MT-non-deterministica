@@ -176,7 +176,7 @@ void caricaDatiMT()
 // aggiungi transizione in liste di adiacenza
 void aggiungiTransizione(unsigned int statoIniziale, char letto, char scritto, char movimentoTestina, unsigned int statoFinale)
 {
-	while(statoIniziale >= numeroDiStati) // numero di stati maggiore del numero massimo che possiamo salvare: aumenta la dimensione dell'array
+	while(statoIniziale >= numeroDiStati || statoFinale >= numeroDiStati) // numero di stati maggiore del numero massimo che possiamo salvare: aumenta la dimensione dell'array
 	{
 		#ifdef DEBUG_DATI
 		printf("Duplicata grandezza array stati macchina.\n");
