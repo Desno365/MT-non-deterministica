@@ -452,7 +452,9 @@ void eseguiMtInAmpiezza(InformazioniConfigurazione* primoPosto)
 		if(statiInMT[statoCorrente] != NULL && charLetto >= statiInMT[statoCorrente]->start && charLetto <= statiInMT[statoCorrente]->end)
 			transizioneValida = statiInMT[statoCorrente]->array[charLetto - statiInMT[statoCorrente]->start];
 		
-		// se non c'è transizione valida in questo stato lo blocchiamo
+
+		// STATO SENZA USCITA
+		// se non c'è transizione valida in questo stato bisonga passare alla prossima configurazione in coda
 		if(transizioneValida == NULL)
 		{
 			freeConfigurazione(primoPosto);
@@ -460,7 +462,8 @@ void eseguiMtInAmpiezza(InformazioniConfigurazione* primoPosto)
 			continue;
 		}
 
-		// controlliamo se arrivati a stato finale
+		// STATO FINALE
+		// controllo se è arrivato in uno stato finale
 		if(transizioneValida->statoFinale < numeroDiStatiAccMax && arrayStatiAcc[transizioneValida->statoFinale])
 		{
 			printf("1\n");
@@ -469,7 +472,8 @@ void eseguiMtInAmpiezza(InformazioniConfigurazione* primoPosto)
 			return;
 		}
 
-		// se non arrivati a stato finale vediamo se abbiamo raggiunto limite mosse
+		// SUPERATO LIMITE MOSSE
+		// se non si è arrivati ad uno stato finale vedo se si è raggiunto il limite delle mosse
 		(primoPosto->numeroMossa)++;
 		if(primoPosto->numeroMossa >= maxMosse)
 		{
@@ -479,9 +483,16 @@ void eseguiMtInAmpiezza(InformazioniConfigurazione* primoPosto)
 			continue;
 		}
 
-		// loop check
-		if(transizioneValida->next == NULL) // deterministico
+
+		// ESECUZIONE MOSSA
+		if(transizioneValida->next == NULL) // controlla se mossa deterministica
 		{
+			// #########
+			// DETERMINISMO
+			// #########
+
+			// LOOP CHECK
+			// controllo per vedere se la macchina si trova in uno stato di loop senza uscita
 			if(charLetto == '_' && statoCorrente == transizioneValida->statoFinale && (statiInMT[statoCorrente]->end - statiInMT[statoCorrente]->start) == 0) // autoanello con N _ * # N; dove *, # sono qualsiasi caratteri ed N è un qualsiasi stato
 			{
 				risultatoValido = 'U';
@@ -489,70 +500,98 @@ void eseguiMtInAmpiezza(InformazioniConfigurazione* primoPosto)
 				primoPosto = estraiDaCoda();
 				continue;
 			}
-		}
 
-		// riutilizzo struttura posto in coda appena rimosso per creare posto in coda per prima transizione
-		primoPosto->statoCorrente = transizioneValida->statoFinale;
-		primoPosto->next = NULL;
-		char scrittoPrimaTransizione = transizioneValida->scritto;
-		char movimTestinaPrimaTransizione = transizioneValida->movimentoTestina;
+			// riutilizzo la struttura del posto in coda appena rimosso per creare il posto in coda della transizione
+			primoPosto->statoCorrente = transizioneValida->statoFinale;
+			primoPosto->next = NULL;
 
-		while(transizioneValida->next != NULL)
-		{
-			// c'è biforcazione, bisogna duplicare informazioni
-			transizioneValida = transizioneValida->next;
-
-			if(transizioneValida->statoFinale < numeroDiStatiAccMax && arrayStatiAcc[transizioneValida->statoFinale])
-			{
-				printf("1\n");
-				freeConfigurazione(primoPosto); // c'è da fare la free del posto analizzato ora che è fuori dalla coda e poi la free dell'intera coda
-				freeCoda();
-				return;
-			}
-
-			InformazioniConfigurazione* postoInCodaLoop = duplicaConfigurazione(primoPosto);
-			postoInCodaLoop->statoCorrente = transizioneValida->statoFinale;
-
-			// esecuzione
-			if(postoInCodaLoop->testina >= 0)
-				postoInCodaLoop->nastroDx[postoInCodaLoop->testina] = transizioneValida->scritto;
+			// esecuzione prima transizione (non dobbiamo modificare il nastro finchè non duplicato)
+			if(primoPosto->testina >= 0)
+				primoPosto->nastroDx[primoPosto->testina] = transizioneValida->scritto;
 			else
-				postoInCodaLoop->nastroSx[-(postoInCodaLoop->testina + 1)] = transizioneValida->scritto;
+				primoPosto->nastroSx[-(primoPosto->testina + 1)] = transizioneValida->scritto;
 			if(transizioneValida->movimentoTestina == 'R')
 			{
-				if(postoInCodaLoop->testina == (postoInCodaLoop->lunghezzaDx - 1)) // si sta accedendo al limite destro dell'array
-					allargaNastroDestro(postoInCodaLoop);
-				(postoInCodaLoop->testina)++;
+				if(primoPosto->testina == (primoPosto->lunghezzaDx - 1)) // si sta accedendo al limite destro dell'array
+					allargaNastroDestro(primoPosto);
+				(primoPosto->testina)++;
 			} else if(transizioneValida->movimentoTestina == 'L')
 			{
-				if(postoInCodaLoop->testina == -(postoInCodaLoop->lunghezzaSx)) // si sta accedendo al limite sinistro dell'array
-					allargaNastroSinistro(postoInCodaLoop);
-				(postoInCodaLoop->testina)--;
+				if(primoPosto->testina == -(primoPosto->lunghezzaSx)) // si sta accedendo al limite sinistro dell'array
+					allargaNastroSinistro(primoPosto);
+				(primoPosto->testina)--;
 			}
+		} else
+		{
+			// #########
+			// NON DETERMINISMO
+			// #########
 
-			// aggiungi in coda
-			aggiungiInCoda(postoInCodaLoop);
+			// riutilizzo la struttura del posto in coda appena rimosso per creare il posto in coda della prima transizione
+			primoPosto->statoCorrente = transizioneValida->statoFinale;
+			primoPosto->next = NULL;
+
+			// salvo in due variabili le informazioni che servono di transizioneValida che poi verrà sovrascritta
+			char scrittoPrimaTransizione = transizioneValida->scritto;
+			char movimTestinaPrimaTransizione = transizioneValida->movimentoTestina;
+
+			do
+			{
+				transizioneValida = transizioneValida->next;
+
+				// STATO FINALE
+				// controllo se è arrivato in uno stato finale
+				if(transizioneValida->statoFinale < numeroDiStatiAccMax && arrayStatiAcc[transizioneValida->statoFinale])
+				{
+					printf("1\n");
+					freeConfigurazione(primoPosto); // c'è da fare la free del posto analizzato ora che è fuori dalla coda e poi la free dell'intera coda
+					freeCoda();
+					return;
+				}
+
+				InformazioniConfigurazione* postoInCodaLoop = duplicaConfigurazione(primoPosto);
+				postoInCodaLoop->statoCorrente = transizioneValida->statoFinale;
+
+				// esecuzione
+				if(postoInCodaLoop->testina >= 0)
+					postoInCodaLoop->nastroDx[postoInCodaLoop->testina] = transizioneValida->scritto;
+				else
+					postoInCodaLoop->nastroSx[-(postoInCodaLoop->testina + 1)] = transizioneValida->scritto;
+				if(transizioneValida->movimentoTestina == 'R')
+				{
+					if(postoInCodaLoop->testina == (postoInCodaLoop->lunghezzaDx - 1)) // si sta accedendo al limite destro dell'array
+						allargaNastroDestro(postoInCodaLoop);
+					(postoInCodaLoop->testina)++;
+				} else if(transizioneValida->movimentoTestina == 'L')
+				{
+					if(postoInCodaLoop->testina == -(postoInCodaLoop->lunghezzaSx)) // si sta accedendo al limite sinistro dell'array
+						allargaNastroSinistro(postoInCodaLoop);
+					(postoInCodaLoop->testina)--;
+				}
+
+				// aggiungi in coda
+				aggiungiInCoda(postoInCodaLoop);
+			} while(transizioneValida->next != NULL);
+
+			// esecuzione prima transizione (non dobbiamo modificare il nastro finchè non duplicato)
+			if(primoPosto->testina >= 0)
+				primoPosto->nastroDx[primoPosto->testina] = scrittoPrimaTransizione;
+			else
+				primoPosto->nastroSx[-(primoPosto->testina + 1)] = scrittoPrimaTransizione;
+			if(movimTestinaPrimaTransizione == 'R')
+			{
+				if(primoPosto->testina == (primoPosto->lunghezzaDx - 1)) // si sta accedendo al limite destro dell'array
+					allargaNastroDestro(primoPosto);
+				(primoPosto->testina)++;
+			} else if(movimTestinaPrimaTransizione == 'L')
+			{
+				if(primoPosto->testina == -(primoPosto->lunghezzaSx)) // si sta accedendo al limite sinistro dell'array
+					allargaNastroSinistro(primoPosto);
+				(primoPosto->testina)--;
+			}
 		}
 
-
-		// esecuzione prima transizione (non dobbiamo modificare il nastro finchè non duplicato)
-		if(primoPosto->testina >= 0)
-			primoPosto->nastroDx[primoPosto->testina] = scrittoPrimaTransizione;
-		else
-			primoPosto->nastroSx[-(primoPosto->testina + 1)] = scrittoPrimaTransizione;
-		if(movimTestinaPrimaTransizione == 'R')
-		{
-			if(primoPosto->testina == (primoPosto->lunghezzaDx - 1)) // si sta accedendo al limite destro dell'array
-				allargaNastroDestro(primoPosto);
-			(primoPosto->testina)++;
-		} else if(movimTestinaPrimaTransizione == 'L')
-		{
-			if(primoPosto->testina == -(primoPosto->lunghezzaSx)) // si sta accedendo al limite sinistro dell'array
-				allargaNastroSinistro(primoPosto);
-			(primoPosto->testina)--;
-		}
-
-		// aggiungi in coda
+		// concludo la prima transizione, che sia deterministica o no: aggiungi in coda la prima transizione
 		aggiungiInCoda(primoPosto);
 
 		// estrai primo in coda
