@@ -43,7 +43,7 @@ unsigned int numeroDiStati;
 
 
 // sistema in ampiezza
-typedef struct InformazioniConfiguazioneStruct
+typedef struct InformazioniConfigurazioneStruct
 {
 	int statoCorrente;
 	unsigned int numeroMossa;
@@ -55,10 +55,10 @@ typedef struct InformazioniConfiguazioneStruct
 	int lunghezzaSx;
 
 	int testina;
-	struct InformazioniConfiguazioneStruct* next;
-} InformazioniConfiguazione;
-InformazioniConfiguazione* codaInformazioni = NULL;
-InformazioniConfiguazione* ultimoInCodaInformazioni = NULL;
+	struct InformazioniConfigurazioneStruct* next;
+} InformazioniConfigurazione;
+InformazioniConfigurazione* codaInformazioni = NULL;
+InformazioniConfigurazione* ultimoInCodaInformazioni = NULL;
 
 
 
@@ -73,19 +73,18 @@ void freeStatiDiAccettazione();
 void debugTransizioni();
 void debugStatiAcc();
 void debugMaxMosse();
-void debugNastro(InformazioniConfiguazione* configurazione);
+void debugNastro(InformazioniConfigurazione* configurazione);
 
-InformazioniConfiguazione* duplicaConfigurazione(InformazioniConfiguazione* configurazione);
-
-void aggiungiInCoda(InformazioniConfiguazione* posto);
-InformazioniConfiguazione* estraiDaCoda();
-void freeConfigurazione(InformazioniConfiguazione* configurazione);
+void aggiungiInCoda(InformazioniConfigurazione* posto);
+InformazioniConfigurazione* estraiDaCoda();
+InformazioniConfigurazione* duplicaConfigurazione(InformazioniConfigurazione* configurazione);
+void freeConfigurazione(InformazioniConfigurazione* configurazione);
 void freeCoda();
 
 void caricaNastroEdEsegui();
-void eseguiMtInAmpiezza(InformazioniConfiguazione* primoPosto);
-void allargaNastroDestro(InformazioniConfiguazione* configurazione);
-void allargaNastroSinistro(InformazioniConfiguazione* configurazione);
+void eseguiMtInAmpiezza(InformazioniConfigurazione* primoPosto);
+void allargaNastroDestro(InformazioniConfigurazione* configurazione);
+void allargaNastroSinistro(InformazioniConfigurazione* configurazione);
 
 int main()
 {
@@ -375,7 +374,7 @@ void debugMaxMosse()
 	printf("Max mosse: %u\n", maxMosse);
 }
 
-void debugNastro(InformazioniConfiguazione* configurazione)
+void debugNastro(InformazioniConfigurazione* configurazione)
 {
    if(configurazione->nastroSx != NULL)
    {
@@ -393,7 +392,7 @@ void debugNastro(InformazioniConfiguazione* configurazione)
 
 
 // ######## FUNZIONI PER CODA DI ATTESA ESECUZIONE IN AMPIEZZA ########
-void aggiungiInCoda(InformazioniConfiguazione* posto)
+void aggiungiInCoda(InformazioniConfigurazione* posto)
 {
 	if(codaInformazioni == NULL)
 	{
@@ -406,9 +405,9 @@ void aggiungiInCoda(InformazioniConfiguazione* posto)
 	}
 }
 
-InformazioniConfiguazione* estraiDaCoda()
+InformazioniConfigurazione* estraiDaCoda()
 {
-	InformazioniConfiguazione* tmp = codaInformazioni;
+	InformazioniConfigurazione* tmp = codaInformazioni;
 	if(codaInformazioni != NULL)
 		codaInformazioni = codaInformazioni->next;
 	if(codaInformazioni == NULL)
@@ -416,9 +415,9 @@ InformazioniConfiguazione* estraiDaCoda()
 	return tmp;
 }
 
-InformazioniConfiguazione* duplicaConfigurazione(InformazioniConfiguazione* configurazione)
+InformazioniConfigurazione* duplicaConfigurazione(InformazioniConfigurazione* configurazione)
 {
-	InformazioniConfiguazione* newConfig = (InformazioniConfiguazione*) malloc(sizeof(InformazioniConfiguazione));
+	InformazioniConfigurazione* newConfig = (InformazioniConfigurazione*) malloc(sizeof(InformazioniConfigurazione));
 	newConfig->testina = configurazione->testina;
 	newConfig->numeroMossa = configurazione->numeroMossa;
 	newConfig->next = NULL;
@@ -444,7 +443,7 @@ InformazioniConfiguazione* duplicaConfigurazione(InformazioniConfiguazione* conf
 	return newConfig;
 }
 
-void freeConfigurazione(InformazioniConfiguazione* configurazione)
+void freeConfigurazione(InformazioniConfigurazione* configurazione)
 {
 	free(configurazione->nastroDx);
 	free(configurazione->nastroSx);
@@ -453,8 +452,8 @@ void freeConfigurazione(InformazioniConfiguazione* configurazione)
 
 void freeCoda()
 {
-	InformazioniConfiguazione* curr = codaInformazioni;
-	InformazioniConfiguazione* daEliminare;
+	InformazioniConfigurazione* curr = codaInformazioni;
+	InformazioniConfigurazione* daEliminare;
 	while(curr != NULL)
 	{
 		daEliminare = curr;
@@ -478,7 +477,7 @@ void caricaNastroEdEsegui()
 
 	while(ch != EOF)
 	{
-		InformazioniConfiguazione* primaConfigurazione = malloc(sizeof(InformazioniConfiguazione));
+		InformazioniConfigurazione* primaConfigurazione = malloc(sizeof(InformazioniConfigurazione));
 		primaConfigurazione->nastroDx = (char*) malloc(sizeof(char));
 		primaConfigurazione->nastroDx[0] = ch;
 		primaConfigurazione->lunghezzaDx = 1;
@@ -508,7 +507,7 @@ void caricaNastroEdEsegui()
 	}
 }
 
-void eseguiMtInAmpiezza(InformazioniConfiguazione* primoPosto)
+void eseguiMtInAmpiezza(InformazioniConfigurazione* primoPosto)
 {
 	char risultatoValido = '0';
 
@@ -557,7 +556,7 @@ void eseguiMtInAmpiezza(InformazioniConfiguazione* primoPosto)
 		// loop check
 		if(transizioneValida->next == NULL) // deterministico
 		{
-			if(charLetto == '_' && statoCorrente == transizioneValida->statoFinale && (statiInMT[statoCorrente]->end - statiInMT[statoCorrente]->start) == 0) // autoanello con N _ * * N
+			if(charLetto == '_' && statoCorrente == transizioneValida->statoFinale && (statiInMT[statoCorrente]->end - statiInMT[statoCorrente]->start) == 0) // autoanello con N _ * # N; dove *, # sono qualsiasi caratteri ed N è un qualsiasi stato
 			{
 				risultatoValido = 'U';
 				freeConfigurazione(primoPosto);
@@ -585,7 +584,7 @@ void eseguiMtInAmpiezza(InformazioniConfiguazione* primoPosto)
 				return;
 			}
 
-			InformazioniConfiguazione* postoInCodaLoop = duplicaConfigurazione(primoPosto);
+			InformazioniConfigurazione* postoInCodaLoop = duplicaConfigurazione(primoPosto);
 			postoInCodaLoop->statoCorrente = transizioneValida->statoFinale;
 
 			// esecuzione
@@ -637,7 +636,7 @@ void eseguiMtInAmpiezza(InformazioniConfiguazione* primoPosto)
 }
 
 // raggiunto limite destro del configurazione crea nuova casella
-void allargaNastroDestro(InformazioniConfiguazione* configurazione)
+void allargaNastroDestro(InformazioniConfigurazione* configurazione)
 {
 	// metodo a singola cella
 	(configurazione->lunghezzaDx)++;
@@ -652,7 +651,7 @@ void allargaNastroDestro(InformazioniConfiguazione* configurazione)
 }
 
 // raggiunto limite sinistro del configurazione crea nuova casella
-void allargaNastroSinistro(InformazioniConfiguazione* configurazione)
+void allargaNastroSinistro(InformazioniConfigurazione* configurazione)
 {
 	// metodo a singola cella
 	(configurazione->lunghezzaSx)++;
@@ -665,4 +664,3 @@ void allargaNastroSinistro(InformazioniConfiguazione* configurazione)
 	for(int i = (configurazione->lunghezzaSx) - CHUNK_DI_ALLARGAMENTO; i < configurazione->lunghezzaSx; i++)
 		configurazione->nastroSx[i] = '_';*/
 }
-
