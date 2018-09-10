@@ -6,7 +6,6 @@
 //#define DEBUG_DATI // debug dati della macchina in ingresso (stati, transizioni, stati di accettazioni, numero massimo di mosse)
 
 // costanti
-#define GRANDEZZA_ARRAY_STATI_INIZIALE 128
 #define FATTORE_DI_ALLARGAMENTO_ARRAY 64
 
 // variabili per lettura file di input
@@ -20,7 +19,7 @@ unsigned int maxMosse;
 
 // variabili per stati di accettazione
 bool* arrayStatiAcc;
-unsigned int numeroDiStatiAccMax;
+unsigned int numeroDiStatiAccMax = 0;
 
 
 // variabili per transizioni
@@ -38,7 +37,7 @@ typedef struct
 	char end;
 } ArraySpecificheTransizione;
 ArraySpecificheTransizione** statiInMT;
-unsigned int numeroDiStati;
+unsigned int numeroDiStati = 0;
 
 
 // sistema in ampiezza
@@ -85,20 +84,10 @@ void eseguiMtInAmpiezza(InformazioniConfigurazione* primoPosto);
 void allargaNastroDestro(InformazioniConfigurazione* configurazione);
 void allargaNastroSinistro(InformazioniConfigurazione* configurazione);
 
+
+
 int main()
 {
-	// inizializzazione stati della MT
-	numeroDiStati = GRANDEZZA_ARRAY_STATI_INIZIALE;
-	statiInMT = (ArraySpecificheTransizione**) malloc(numeroDiStati * sizeof(ArraySpecificheTransizione*));
-	for(unsigned int i = 0; i < numeroDiStati; i++)
-		statiInMT[i] = NULL;
-
-	// inizializzazione array stati finali
-	numeroDiStatiAccMax = GRANDEZZA_ARRAY_STATI_INIZIALE;
-	arrayStatiAcc = (bool*) malloc(numeroDiStatiAccMax * sizeof(bool));
-	for(unsigned int i = 0; i < numeroDiStatiAccMax; i++)
-		arrayStatiAcc[i] = false;
-
 	caricaDatiMT();
 
 	#ifdef DEBUG_DATI
@@ -115,6 +104,7 @@ int main()
 }
 
 
+
 // ######## FUNZIONI INTERPRETAZIONE DATI MT ########
 
 // funzione principale per interpretare ingresso ottenendo dati della MT
@@ -123,7 +113,8 @@ void caricaDatiMT()
 	char riga[64];
 	while(1)
 	{
-		scanf(" %64[^\r\n]", riga); // leggi intera riga
+		if(scanf(" %64[^\r\n]", riga) < 0) // leggi l'intera riga
+			exit(-1);
 
 		// controlla se inizia nuova sezione
 		if(strcmp(riga, "tr") == 0)
@@ -326,66 +317,6 @@ void freeStatiDiAccettazione()
 {
 
 	free(arrayStatiAcc);
-}
-
-
-
-// ######## FUNZIONI DI DEBUG ########
-void debugTransizioni()
-{
-	printf("Debug transizioni:\n");
-	for (unsigned int i = 0; i < numeroDiStati; i++)
-	{
-		if(statiInMT[i] != NULL)
-		{
-			for(int j = 0; j < (statiInMT[i]->end - statiInMT[i]->start + 1); j++)
-			{
-				if(statiInMT[i]->array[j] != NULL)
-				{
-					printf("Stato %d con letto %c collegato con", i, (((char) j) + statiInMT[i]->start));
-					SpecificheTransizione* curr = statiInMT[i]->array[j];
-					while(curr != NULL)
-					{
-						printf(" %d", curr->statoFinale);
-						curr = curr->next;
-					}
-					printf("\n");
-				}
-			}
-		}
-	}
-}
-
-void debugStatiAcc()
-{
-	printf("Stati di accettazione:");
-	for(unsigned int i = 0; i < numeroDiStatiAccMax; i++)
-	{
-		if(arrayStatiAcc[i])
-			printf(" %d", i);
-	}
-	printf("\n");
-}
-
-void debugMaxMosse()
-{
-
-	printf("Max mosse: %u\n", maxMosse);
-}
-
-void debugNastro(InformazioniConfigurazione* configurazione)
-{
-   if(configurazione->nastroSx != NULL)
-   {
-		for(unsigned int i = configurazione->lunghezzaSx; i > 0; i--)
-			printf("%c", configurazione->nastroSx[i - 1]);
-   }
-
-	if(configurazione->nastroDx != NULL)
-	{
-		for(unsigned int i = 0; i < configurazione->lunghezzaDx; i++)
-			printf("%c", configurazione->nastroDx[i]);
-	}
 }
 
 
@@ -650,4 +581,64 @@ void allargaNastroSinistro(InformazioniConfigurazione* configurazione)
 	(configurazione->lunghezzaSx)++;
 	configurazione->nastroSx = (char*) realloc(configurazione->nastroSx, (configurazione->lunghezzaSx) * sizeof(char*));
 	configurazione->nastroSx[configurazione->lunghezzaSx - 1] = '_'; // scrivi carattere
+}
+
+
+
+// ######## FUNZIONI DI DEBUG ########
+void debugTransizioni()
+{
+	printf("Debug transizioni:\n");
+	for (unsigned int i = 0; i < numeroDiStati; i++)
+	{
+		if(statiInMT[i] != NULL)
+		{
+			for(int j = 0; j < (statiInMT[i]->end - statiInMT[i]->start + 1); j++)
+			{
+				if(statiInMT[i]->array[j] != NULL)
+				{
+					printf("Stato %d con letto %c collegato con", i, (((char) j) + statiInMT[i]->start));
+					SpecificheTransizione* curr = statiInMT[i]->array[j];
+					while(curr != NULL)
+					{
+						printf(" %d", curr->statoFinale);
+						curr = curr->next;
+					}
+					printf("\n");
+				}
+			}
+		}
+	}
+}
+
+void debugStatiAcc()
+{
+	printf("Stati di accettazione:");
+	for(unsigned int i = 0; i < numeroDiStatiAccMax; i++)
+	{
+		if(arrayStatiAcc[i])
+			printf(" %d", i);
+	}
+	printf("\n");
+}
+
+void debugMaxMosse()
+{
+
+	printf("Max mosse: %u\n", maxMosse);
+}
+
+void debugNastro(InformazioniConfigurazione* configurazione)
+{
+	if(configurazione->nastroSx != NULL)
+	{
+		for(unsigned int i = configurazione->lunghezzaSx; i > 0; i--)
+			printf("%c", configurazione->nastroSx[i - 1]);
+	}
+
+	if(configurazione->nastroDx != NULL)
+	{
+		for(unsigned int i = 0; i < configurazione->lunghezzaDx; i++)
+			printf("%c", configurazione->nastroDx[i]);
+	}
 }
