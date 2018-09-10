@@ -67,10 +67,8 @@ void caricaDatiMT();
 void aggiungiTransizione(int statoIniziale, char letto, char scritto, char movimentoTestina, int statoFinale);
 bool controllaSeTransizionePresente(int stato, char letto);
 void freeTransizioni();
-SpecificheTransizione* getPrimaTransizioneValida(int stato, char charLetto);
 void aggiungiStatoDiAccettazione(int statoDiAccettazione);
 void freeStatiDiAccettazione();
-bool controllaSeStatoDiAccettazione(int stato);
 
 void debugTransizioni();
 void debugStatiAcc();
@@ -304,17 +302,6 @@ void freeTransizioni()
 	free(statiInMT);
 }
 
-// in base a stato corrente e carattere letto ottiene la prima transizione che corrisponde nella lista
-SpecificheTransizione* getPrimaTransizioneValida(int stato, char charLetto)
-{
-	if(statiInMT[stato] == NULL)
-		return NULL;
-	if(charLetto < statiInMT[stato]->start || charLetto > statiInMT[stato]->end)
-		return NULL;
-	else
-		return statiInMT[stato]->array[charLetto - statiInMT[stato]->start];
-}
-
 // aggiungi stato di accettazione in lista
 void aggiungiStatoDiAccettazione(int statoDiAccettazione)
 {
@@ -341,16 +328,6 @@ void freeStatiDiAccettazione()
 {
 
 	free(arrayStatiAcc);
-}
-
-// true se stato è stato di accettazione, false altrimenti
-bool controllaSeStatoDiAccettazione(int stato)
-{
-	if(stato < numeroDiStatiAccMax)
-	{
-		return arrayStatiAcc[stato];
-	} else
-		return false;
 }
 
 
@@ -537,24 +514,29 @@ void eseguiMtInAmpiezza(InformazioniConfiguazione* primoPosto)
 
 	while(primoPosto != NULL)
 	{
+		// ottieni in variabili locali lo stato corrente e il carattere letto
 		int statoCorrente = primoPosto->statoCorrente;
 		char charLetto;
 		if(primoPosto->testina >= 0)
 			charLetto = primoPosto->nastroDx[primoPosto->testina];
 		else
 			charLetto = primoPosto->nastroSx[-(primoPosto->testina + 1)];
-		SpecificheTransizione* transizioneValida = getPrimaTransizioneValida(statoCorrente, charLetto);
 
+		// in base a stato corrente e carattere letto ottiene la prima transizione che corrisponde nella lista
+		SpecificheTransizione* transizioneValida = NULL;
+		if(statiInMT[statoCorrente] != NULL && charLetto >= statiInMT[statoCorrente]->start && charLetto <= statiInMT[statoCorrente]->end)
+			transizioneValida = statiInMT[statoCorrente]->array[charLetto - statiInMT[statoCorrente]->start];
+		
 		// se non c'è transizione valida in questo stato lo blocchiamo
 		if(transizioneValida == NULL)
 		{
 			freeConfigurazione(primoPosto);
-            primoPosto = estraiDaCoda();
+			primoPosto = estraiDaCoda();
 			continue;
 		}
 
 		// controlliamo se arrivati a stato finale
-		if(controllaSeStatoDiAccettazione(transizioneValida->statoFinale))
+		if(transizioneValida->statoFinale < numeroDiStatiAccMax && arrayStatiAcc[transizioneValida->statoFinale])
 		{
 			printf("1\n");
 			freeConfigurazione(primoPosto); // c'è da fare la free del posto analizzato ora che è fuori dalla coda e poi la free dell'intera coda
@@ -572,19 +554,30 @@ void eseguiMtInAmpiezza(InformazioniConfiguazione* primoPosto)
 			continue;
 		}
 
+		// loop check
+		if(transizioneValida->next == NULL) // deterministico
+		{
+			if(charLetto == '_' && statoCorrente == transizioneValida->statoFinale) // N _ * * N
+			{
+				risultatoValido = 'U';
+				freeConfigurazione(primoPosto);
+				primoPosto = estraiDaCoda();
+				continue;
+			}
+		}
+
 		// riutilizzo struttura posto in coda appena rimosso per creare posto in coda per prima transizione
 		primoPosto->statoCorrente = transizioneValida->statoFinale;
 		primoPosto->next = NULL;
 		char scrittoPrimaTransizione = transizioneValida->scritto;
 		char movimTestinaPrimaTransizione = transizioneValida->movimentoTestina;
 
-
 		while(transizioneValida->next != NULL)
 		{
 			// c'è biforcazione, bisogna duplicare informazioni
 			transizioneValida = transizioneValida->next;
 
-			if(controllaSeStatoDiAccettazione(transizioneValida->statoFinale))
+			if(transizioneValida->statoFinale < numeroDiStatiAccMax && arrayStatiAcc[transizioneValida->statoFinale])
 			{
 				printf("1\n");
 				freeConfigurazione(primoPosto); // c'è da fare la free del posto analizzato ora che è fuori dalla coda e poi la free dell'intera coda
