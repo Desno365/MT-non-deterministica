@@ -8,7 +8,6 @@
 // costanti
 #define GRANDEZZA_ARRAY_STATI_INIZIALE 128
 #define FATTORE_DI_ALLARGAMENTO_ARRAY 64
-#define CHUNK_DI_ALLARGAMENTO 64
 
 // variabili per lettura file di input
 typedef enum {TR, ACC, MAX, RUN} InputCorrenteType;
@@ -29,7 +28,7 @@ typedef struct SpecificheTransizioneStruct
 {
 	char scritto;
 	char movimentoTestina;
-	int statoFinale;
+	unsigned int statoFinale;
 	struct SpecificheTransizioneStruct* next;
 } SpecificheTransizione;
 typedef struct
@@ -45,14 +44,14 @@ unsigned int numeroDiStati;
 // sistema in ampiezza
 typedef struct InformazioniConfigurazioneStruct
 {
-	int statoCorrente;
+	unsigned int statoCorrente;
 	unsigned int numeroMossa;
 
 	// nastro
 	char* nastroDx;
 	char* nastroSx;
-	int lunghezzaDx;
-	int lunghezzaSx;
+	unsigned int lunghezzaDx;
+	unsigned int lunghezzaSx;
 
 	int testina;
 	struct InformazioniConfigurazioneStruct* next;
@@ -64,10 +63,10 @@ InformazioniConfigurazione* ultimoInCodaInformazioni = NULL;
 
 // ######## DICHIARAZIONE FUNZIONI ########
 void caricaDatiMT();
-void aggiungiTransizione(int statoIniziale, char letto, char scritto, char movimentoTestina, int statoFinale);
-bool controllaSeTransizionePresente(int stato, char letto);
+void aggiungiTransizione(unsigned int statoIniziale, char letto, char scritto, char movimentoTestina, unsigned int statoFinale);
+bool controllaSeTransizionePresente(unsigned int stato, char letto);
 void freeTransizioni();
-void aggiungiStatoDiAccettazione(int statoDiAccettazione);
+void aggiungiStatoDiAccettazione(unsigned int statoDiAccettazione);
 void freeStatiDiAccettazione();
 
 void debugTransizioni();
@@ -91,13 +90,13 @@ int main()
 	// inizializzazione stati della MT
 	numeroDiStati = GRANDEZZA_ARRAY_STATI_INIZIALE;
 	statiInMT = (ArraySpecificheTransizione**) malloc(numeroDiStati * sizeof(ArraySpecificheTransizione*));
-	for(int i = 0; i < numeroDiStati; i++)
+	for(unsigned int i = 0; i < numeroDiStati; i++)
 		statiInMT[i] = NULL;
 
 	// inizializzazione array stati finali
 	numeroDiStatiAccMax = GRANDEZZA_ARRAY_STATI_INIZIALE;
 	arrayStatiAcc = (bool*) malloc(numeroDiStatiAccMax * sizeof(bool));
-	for(int i = 0; i < numeroDiStatiAccMax; i++)
+	for(unsigned int i = 0; i < numeroDiStatiAccMax; i++)
 		arrayStatiAcc[i] = false;
 
 	caricaDatiMT();
@@ -152,17 +151,17 @@ void caricaDatiMT()
 		// se in sezione tr leggi transizione
 		if(inputCorrente == TR)
 		{
-			int statoI, statoF;
+			unsigned int statoI, statoF;
 			char letto, scritto, movimentoTestina;
-			sscanf(riga, "%d %c %c %c %d", &statoI, &letto, &scritto, &movimentoTestina, &statoF);
+			sscanf(riga, "%u %c %c %c %u", &statoI, &letto, &scritto, &movimentoTestina, &statoF);
 			aggiungiTransizione(statoI, letto, scritto, movimentoTestina, statoF);
 		}
 
 		// se in sezione acc leggi stati di accettazione
 		if(inputCorrente == ACC)
 		{
-			int statoDiAccettazione;
-			sscanf(riga, "%d", &statoDiAccettazione);
+			unsigned int statoDiAccettazione;
+			sscanf(riga, "%u", &statoDiAccettazione);
 			aggiungiStatoDiAccettazione(statoDiAccettazione);
 		}
 
@@ -175,9 +174,9 @@ void caricaDatiMT()
 }
 
 // aggiungi transizione in liste di adiacenza
-void aggiungiTransizione(int statoIniziale, char letto, char scritto, char movimentoTestina, int statoFinale)
+void aggiungiTransizione(unsigned int statoIniziale, char letto, char scritto, char movimentoTestina, unsigned int statoFinale)
 {
-	while(statoIniziale >= numeroDiStati) // numero di stati maggiore del numero massimo che possiamo salvare: raddoppia la dimensione dell'array
+	while(statoIniziale >= numeroDiStati) // numero di stati maggiore del numero massimo che possiamo salvare: aumenta la dimensione dell'array
 	{
 		#ifdef DEBUG_DATI
 		printf("Duplicata grandezza array stati macchina.\n");
@@ -186,7 +185,7 @@ void aggiungiTransizione(int statoIniziale, char letto, char scritto, char movim
 		if(temp != NULL)
 		{
 			statiInMT = temp;
-			for(int i = numeroDiStati; i < (numeroDiStati + FATTORE_DI_ALLARGAMENTO_ARRAY); i++)
+			for(unsigned int i = numeroDiStati; i < (numeroDiStati + FATTORE_DI_ALLARGAMENTO_ARRAY); i++)
 				statiInMT[i] = NULL;
 			numeroDiStati = (numeroDiStati + FATTORE_DI_ALLARGAMENTO_ARRAY);
 		}
@@ -208,7 +207,7 @@ void aggiungiTransizione(int statoIniziale, char letto, char scritto, char movim
 	{
 		if(controllaSeTransizionePresente(statoIniziale, letto))
 		{
-			// esiste già un atransizione con questo stato e con questo carattere, ne aggiungo un'altra (nota: qua si ha biforcazione non deterministica)
+			// esiste già una transizione con questo stato e con questo carattere, ne aggiungo un'altra (nota: qua si ha non determinismo)
 			int start = statiInMT[statoIniziale]->start;
 			SpecificheTransizione* primaSpecificaPresente = statiInMT[statoIniziale]->array[letto-start];
 			SpecificheTransizione* nuovaSpecifica = (SpecificheTransizione*) malloc(sizeof(SpecificheTransizione));
@@ -268,7 +267,7 @@ void aggiungiTransizione(int statoIniziale, char letto, char scritto, char movim
 	}
 }
 
-bool controllaSeTransizionePresente(int stato, char letto)
+bool controllaSeTransizionePresente(unsigned int stato, char letto)
 {
 
 	return !(letto < statiInMT[stato]->start || letto > statiInMT[stato]->end || statiInMT[stato]->array[letto - statiInMT[stato]->start] == NULL);
@@ -276,7 +275,7 @@ bool controllaSeTransizionePresente(int stato, char letto)
 
 void freeTransizioni()
 {
-	for (int i = 0; i < numeroDiStati; i++)
+	for (unsigned int i = 0; i < numeroDiStati; i++)
 	{
 		if(statiInMT[i] != NULL)
 		{
@@ -302,7 +301,7 @@ void freeTransizioni()
 }
 
 // aggiungi stato di accettazione in lista
-void aggiungiStatoDiAccettazione(int statoDiAccettazione)
+void aggiungiStatoDiAccettazione(unsigned int statoDiAccettazione)
 {
 	while(statoDiAccettazione >= numeroDiStatiAccMax) // numero dello stato di accettazione maggiore del numero massimo che possiamo salvare: raddoppia la dimensione dell'array
 	{
@@ -314,7 +313,7 @@ void aggiungiStatoDiAccettazione(int statoDiAccettazione)
 		if(temp != NULL)
 		{
 			arrayStatiAcc = temp;
-			for(int i = numeroDiStatiAccMax; i < (numeroDiStatiAccMax + FATTORE_DI_ALLARGAMENTO_ARRAY); i++)
+			for(unsigned int i = numeroDiStatiAccMax; i < (numeroDiStatiAccMax + FATTORE_DI_ALLARGAMENTO_ARRAY); i++)
 				arrayStatiAcc[i] = false;
 			numeroDiStatiAccMax = (numeroDiStatiAccMax + FATTORE_DI_ALLARGAMENTO_ARRAY);
 		}
@@ -335,7 +334,7 @@ void freeStatiDiAccettazione()
 void debugTransizioni()
 {
 	printf("Debug transizioni:\n");
-	for (int i = 0; i < numeroDiStati; i++)
+	for (unsigned int i = 0; i < numeroDiStati; i++)
 	{
 		if(statiInMT[i] != NULL)
 		{
@@ -360,7 +359,7 @@ void debugTransizioni()
 void debugStatiAcc()
 {
 	printf("Stati di accettazione:");
-	for(int i = 0; i < numeroDiStatiAccMax; i++)
+	for(unsigned int i = 0; i < numeroDiStatiAccMax; i++)
 	{
 		if(arrayStatiAcc[i])
 			printf(" %d", i);
@@ -378,13 +377,13 @@ void debugNastro(InformazioniConfigurazione* configurazione)
 {
    if(configurazione->nastroSx != NULL)
    {
-		for(int i = configurazione->lunghezzaSx; i > 0; i--)
+		for(unsigned int i = configurazione->lunghezzaSx; i > 0; i--)
 			printf("%c", configurazione->nastroSx[i - 1]);
    }
 
 	if(configurazione->nastroDx != NULL)
 	{
-		for(int i = 0; i < configurazione->lunghezzaDx; i++)
+		for(unsigned int i = 0; i < configurazione->lunghezzaDx; i++)
 			printf("%c", configurazione->nastroDx[i]);
 	}
 }
@@ -514,7 +513,7 @@ void eseguiMtInAmpiezza(InformazioniConfigurazione* primoPosto)
 	while(primoPosto != NULL)
 	{
 		// ottieni in variabili locali lo stato corrente e il carattere letto
-		int statoCorrente = primoPosto->statoCorrente;
+		unsigned int statoCorrente = primoPosto->statoCorrente;
 		char charLetto;
 		if(primoPosto->testina >= 0)
 			charLetto = primoPosto->nastroDx[primoPosto->testina];
@@ -642,12 +641,6 @@ void allargaNastroDestro(InformazioniConfigurazione* configurazione)
 	(configurazione->lunghezzaDx)++;
 	configurazione->nastroDx = (char*) realloc(configurazione->nastroDx, (configurazione->lunghezzaDx) * sizeof(char*));
 	configurazione->nastroDx[configurazione->lunghezzaDx - 1] = '_'; // scrivi carattere
-
-	// metodo a chunk
-	/*(configurazione->lunghezzaDx) += CHUNK_DI_ALLARGAMENTO;
-	configurazione->nastroDx = (char*) realloc(configurazione->nastroDx, (configurazione->lunghezzaDx) * sizeof(char*));
-	for(int i = (configurazione->lunghezzaDx) - CHUNK_DI_ALLARGAMENTO; i < configurazione->lunghezzaDx; i++)
-		configurazione->nastroDx[i] = '_';*/
 }
 
 // raggiunto limite sinistro del configurazione crea nuova casella
@@ -657,10 +650,4 @@ void allargaNastroSinistro(InformazioniConfigurazione* configurazione)
 	(configurazione->lunghezzaSx)++;
 	configurazione->nastroSx = (char*) realloc(configurazione->nastroSx, (configurazione->lunghezzaSx) * sizeof(char*));
 	configurazione->nastroSx[configurazione->lunghezzaSx - 1] = '_'; // scrivi carattere
-
-	// metodo a chunk
-	/*(configurazione->lunghezzaSx) += CHUNK_DI_ALLARGAMENTO;
-	configurazione->nastroSx = (char*) realloc(configurazione->nastroSx, (configurazione->lunghezzaSx) * sizeof(char*));
-	for(int i = (configurazione->lunghezzaSx) - CHUNK_DI_ALLARGAMENTO; i < configurazione->lunghezzaSx; i++)
-		configurazione->nastroSx[i] = '_';*/
 }
