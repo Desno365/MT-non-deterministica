@@ -8,6 +8,7 @@
 // costanti
 #define FATTORE_DI_ALLARGAMENTO_ARRAY 64
 
+
 // variabili per lettura file di input
 typedef enum {TR, ACC, MAX, RUN} InputCorrenteType;
 InputCorrenteType inputCorrente = TR;
@@ -106,9 +107,7 @@ int main()
 
 
 // ######## FUNZIONI INTERPRETAZIONE DATI MT ########
-
-// funzione principale per interpretare ingresso ottenendo dati della MT
-void caricaDatiMT()
+void caricaDatiMT() // funzione principale per interpretare la MT
 {
 	char riga[64];
 	while(1)
@@ -164,7 +163,6 @@ void caricaDatiMT()
 	}
 }
 
-// aggiungi transizione in liste di adiacenza
 void aggiungiTransizione(unsigned int statoIniziale, char letto, char scritto, char movimentoTestina, unsigned int statoFinale)
 {
 	while(statoIniziale >= numeroDiStati || statoFinale >= numeroDiStati) // numero di stati maggiore del numero massimo che possiamo salvare: aumenta la dimensione dell'array
@@ -291,7 +289,6 @@ void freeTransizioni()
 	free(statiInMT);
 }
 
-// aggiungi stato di accettazione in lista
 void aggiungiStatoDiAccettazione(unsigned int statoDiAccettazione)
 {
 	while(statoDiAccettazione >= numeroDiStatiAccMax) // numero dello stato di accettazione maggiore del numero massimo che possiamo salvare: raddoppia la dimensione dell'array
@@ -312,7 +309,6 @@ void aggiungiStatoDiAccettazione(unsigned int statoDiAccettazione)
 	arrayStatiAcc[statoDiAccettazione] = true;
 }
 
-// svuota lista stati di accettazione
 void freeStatiDiAccettazione()
 {
 
@@ -565,7 +561,7 @@ void eseguiMtInAmpiezza(InformazioniConfigurazione* primoPosto)
 	printf("%c\n", risultatoValido);
 }
 
-// raggiunto limite destro del configurazione crea nuova casella
+// raggiunto il limite destro del nastro crea nuova casella
 void allargaNastroDestro(InformazioniConfigurazione* configurazione)
 {
 	// metodo a singola cella
@@ -574,7 +570,7 @@ void allargaNastroDestro(InformazioniConfigurazione* configurazione)
 	configurazione->nastroDx[configurazione->lunghezzaDx - 1] = '_'; // scrivi carattere
 }
 
-// raggiunto limite sinistro del configurazione crea nuova casella
+// raggiunto il limite sinistro del nastro crea nuova casella
 void allargaNastroSinistro(InformazioniConfigurazione* configurazione)
 {
 	// metodo a singola cella
