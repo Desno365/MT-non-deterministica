@@ -1,4 +1,4 @@
-# MT-non-deterministica
+# Nondeterministic Turing Machine Simulator
 Computer engineering project made for the course: "Algorithms and Principles of Computer Science" at "Politecnico di Milano".
 Academic Year 2017/2018.
 Grade: 30 Cum Laude.
